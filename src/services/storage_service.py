@@ -18,7 +18,7 @@ from src.core.exceptions import (
     ConfigurationError
 )
 from src.core.logging import ServiceLogger, log_function_call, log_error
-from src.services.interfaces import StorageServiceInterface
+from src.interfaces import StorageServiceInterface
 
 # Initialize logger at module level
 logger = ServiceLogger('storage_services')

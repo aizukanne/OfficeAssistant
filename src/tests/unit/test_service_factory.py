@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import patch
 
 from src.services import get_service
-from src.services.interfaces import ServiceInterface
+from src.interfaces import ServiceInterface
 from src.services.external_services import ExternalService
 from src.services.storage_service import StorageService
 from src.services.slack_service import SlackService

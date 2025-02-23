@@ -28,8 +28,8 @@ from src.core.exceptions import (
 )
 from src.core.logging import ServiceLogger, log_function_call, log_error
 from src.utils.text_processing import clean_text, rank_sentences, load_stopwords
-from src.services.interfaces import ExternalServiceInterface
-from src.services import StorageService
+from src.interfaces import ExternalServiceInterface
+from src.services import _storage_service
 
 # Initialize storage service
 _storage_service = StorageService()

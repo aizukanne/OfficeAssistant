@@ -12,7 +12,7 @@ from src.core.exceptions import (
 from src.core.logging import ServiceLogger, log_function_call, log_error
 from src.core.security import rate_limit, validate_request, audit_log
 from src.core.performance import cached, monitor_performance
-from src.services.interfaces import MessageServiceInterface
+from src.interfaces import MessageServiceInterface
 from src.services import _storage_service
 
 class SlackService(MessageServiceInterface):

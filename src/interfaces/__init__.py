@@ -223,36 +223,3 @@ class AIServiceInterface(ServiceInterface):
             Dict[str, Any]: Analysis results
         """
         pass
-
-class ServiceFactory:
-    """Factory for creating service instances."""
-    
-    @staticmethod
-    def create_service(service_type: str, **kwargs: Any) -> ServiceInterface:
-        """
-        Create a service instance.
-        
-        Args:
-            service_type: Type of service to create
-            **kwargs: Service configuration parameters
-            
-        Returns:
-            ServiceInterface: Service instance
-            
-        Raises:
-            ValueError: If service type is invalid
-        """
-        if service_type == "external":
-            from .external_services import ExternalService
-            return ExternalService(**kwargs)
-        elif service_type == "storage":
-            from . import _storage_service
-            return _storage_service
-        elif service_type == "message":
-            from .slack_service import SlackService
-            return SlackService(**kwargs)
-        elif service_type == "ai":
-            from .openai_service import OpenAIService
-            return OpenAIService(**kwargs)
-        else:
-            raise ValueError(f"Invalid service type: {service_type}")
