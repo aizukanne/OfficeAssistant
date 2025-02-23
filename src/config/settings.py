@@ -1,157 +1,161 @@
 import os
-from typing import Dict, Optional
+from typing import Dict, Any
 
-# API Keys and Authentication
-SLACK_BOT_TOKEN: str = os.getenv('SLACK_BOT_TOKEN', '')
-GOOGLE_API_KEY: str = os.getenv('GOOGLE_API_KEY', '')
-GEMINI_API_KEY: str = os.getenv('GEMINI_API_KEY', '')
-CALENDAR_ID: str = os.getenv('GOOGLE_CALENDAR_ID', '')
-ERPNEXT_API_KEY: str = os.getenv('ERPNEXT_API_KEY', '')
-ERPNEXT_API_SECRET: str = os.getenv('ERPNEXT_API_SECRET', '')
-OPENAI_API_KEY: str = os.getenv('OPENAI_API_KEY', '')
-OPENWEATHER_KEY: str = os.getenv('OPENWEATHER_KEY', '')
+# API Keys and Credentials
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
+GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
+GOOGLE_SEARCH_CX = os.getenv('GOOGLE_SEARCH_CX')
+OPENWEATHER_KEY = os.getenv('OPENWEATHER_KEY')
+SLACK_BOT_TOKEN = os.getenv('SLACK_BOT_TOKEN')
 
-# Odoo Configuration
-ODOO_URL: str = os.getenv('ODOO_URL', '')
-ODOO_DB: str = os.getenv('ODOO_DB', '')
-ODOO_LOGIN: str = os.getenv('ODOO_LOGIN', '')
-ODOO_PASSWORD: str = os.getenv('ODOO_PASSWORD', '')
+# S3 Configuration
+S3_BUCKETS = {
+    'images': 'mariaimagefolder-us',
+    'documents': 'mariadocsfolder-us'
+}
 
 # DynamoDB Tables
-DYNAMODB_TABLES: Dict[str, str] = {
+DYNAMODB_TABLES = {
     'user': 'staff_history',
     'assistant': 'maria_history',
-    'names': 'slack_usernames',
+    'usernames': 'slack_usernames',
     'channels': 'channels_table',
     'meetings': 'meetings_table'
 }
 
-# S3 Buckets
-S3_BUCKETS: Dict[str, str] = {
-    'images': 'mariaimagefolder-us',
-    'docs': 'mariadocsfolder-us'
+# API Endpoints
+API_ENDPOINTS = {
+    'openweather': {
+        'geo': 'http://api.openweathermap.org/geo/1.0/direct',
+        'weather': 'https://api.openweathermap.org/data/3.0/onecall'
+    },
+    'google': {
+        'calendar': 'https://www.googleapis.com/calendar/v3/calendars',
+        'search': 'https://www.googleapis.com/customsearch/v1',
+        'oauth': 'https://oauth2.googleapis.com/token'
+    },
+    'slack': {
+        'message': 'https://slack.com/api/chat.postMessage',
+        'upload': 'https://slack.com/api/files.upload',
+        'users': 'https://slack.com/api/users.info',
+        'conversations': 'https://slack.com/api/conversations.list'
+    }
 }
 
-# NLTK Configuration
-NLTK_DATA_PATH: str = "/opt/python/nltk_data"
-
-# OpenAI Configuration
-OPENAI_MODELS: Dict[str, str] = {
-    'default': 'gpt-4o-2024-11-20',
-    'audio': 'gpt-4o-audio-preview-2024-12-17',
-    'embeddings': 'text-embedding-ada-002'
-}
-
-OPENAI_MAX_TOKENS: int = 5500
-OPENAI_TEMPERATURE: float = 0.9
-
-# File Processing
-FILE_SIZE_LIMIT_MB: int = 5
-ALLOWED_FILE_TYPES: Dict[str, list] = {
-    'images': ['.jpg', '.jpeg', '.png', '.gif'],
-    'documents': ['.pdf', '.docx', '.txt', '.md'],
-    'audio': ['.mp3', '.wav', '.m4a']
+# HTTP Configuration
+HTTP_CONFIG = {
+    'timeout': 30,
+    'max_retries': 3,
+    'retry_delay': 1,  # seconds
+    'max_concurrent_requests': 5
 }
 
 # Proxy Configuration
-PROXY_URL: str = "http://aizukanne3:Ng8qM7DCChitRRuGDusL_country-US,CA@core-residential.evomi.com:1000"
-
-# Message Retention
-MESSAGE_TTL_DAYS: int = 20
-
-# Default Channel IDs
-DEFAULT_CHANNELS: Dict[str, str] = {
-    'email_notifications': 'C06QL84KZGQ',
-    'default_user': 'U02RPR2RMJS'
+PROXY_CONFIG = {
+    'url': "http://aizukanne3:Ng8qM7DCChitRRuGDusL_country-US,CA@core-residential.evomi.com:1000",
+    'enabled': True
 }
 
-def get_env(key: str, default: Optional[str] = None) -> str:
+# User Agents
+USER_AGENTS = [
+    # Chrome (Windows, macOS, Linux)
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.81 Safari/537.36",
+    # Firefox (Windows, macOS, Linux)
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:91.0) Gecko/20100101 Firefox/91.0",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:93.0) Gecko/20100101 Firefox/93.0",
+    "Mozilla/5.0 (X11; Linux x86_64; rv:95.0) Gecko/20100101 Firefox/95.0"
+]
+
+# NLTK Configuration
+NLTK_CONFIG = {
+    'data_path': "/opt/python/nltk_data",
+    'required_packages': ['punkt', 'stopwords', 'averaged_perceptron_tagger']
+}
+
+# Text Processing Configuration
+TEXT_PROCESSING = {
+    'max_summary_sentences': 50,
+    'max_full_text_sentences': 150,
+    'max_sentence_words': 30
+}
+
+def validate_config() -> Dict[str, Any]:
     """
-    Get environment variable with a default value.
+    Validates the configuration and returns any missing required settings.
+    
+    Returns:
+        Dict[str, Any]: Dictionary of missing settings and their descriptions
+    """
+    missing = {}
+    
+    # Check required API keys
+    if not OPENAI_API_KEY:
+        missing['OPENAI_API_KEY'] = "OpenAI API key is required"
+    if not GOOGLE_API_KEY:
+        missing['GOOGLE_API_KEY'] = "Google API key is required"
+    if not GOOGLE_SEARCH_CX:
+        missing['GOOGLE_SEARCH_CX'] = "Google Search CX is required"
+    if not OPENWEATHER_KEY:
+        missing['OPENWEATHER_KEY'] = "OpenWeather API key is required"
+    if not SLACK_BOT_TOKEN:
+        missing['SLACK_BOT_TOKEN'] = "Slack bot token is required"
+        
+    return missing
+
+def get_proxy_url() -> str:
+    """
+    Returns the proxy URL if proxy is enabled.
+    
+    Returns:
+        str: Proxy URL if enabled, empty string otherwise
+    """
+    return PROXY_CONFIG['url'] if PROXY_CONFIG['enabled'] else ''
+
+def get_user_agent() -> str:
+    """
+    Returns a random user agent from the list.
+    
+    Returns:
+        str: Random user agent string
+    """
+    from random import choice
+    return choice(USER_AGENTS)
+
+def get_api_endpoint(service: str, endpoint: str) -> str:
+    """
+    Gets the API endpoint URL for a specific service and endpoint.
     
     Args:
-        key: Environment variable key
-        default: Default value if key not found
+        service: Service name (e.g., 'openweather', 'google', 'slack')
+        endpoint: Endpoint name (e.g., 'geo', 'weather', 'calendar')
         
     Returns:
-        str: Environment variable value or default
+        str: API endpoint URL
     """
-    return os.getenv(key, default or '')
+    return API_ENDPOINTS.get(service, {}).get(endpoint, '')
 
-def validate_settings() -> bool:
+def get_table_name(table: str) -> str:
     """
-    Validate that all required settings are present.
-    
-    Returns:
-        bool: True if all required settings are present
-    """
-    required_settings = [
-        SLACK_BOT_TOKEN,
-        OPENAI_API_KEY,
-        ODOO_URL,
-        ODOO_DB,
-        ODOO_LOGIN,
-        ODOO_PASSWORD
-    ]
-    
-    return all(required_settings)
-
-def get_dynamodb_table(table_key: str) -> str:
-    """
-    Get DynamoDB table name by key.
+    Gets the DynamoDB table name.
     
     Args:
-        table_key: Key in DYNAMODB_TABLES dictionary
+        table: Table identifier (e.g., 'user', 'assistant', 'usernames')
         
     Returns:
-        str: Table name
+        str: DynamoDB table name
     """
-    return DYNAMODB_TABLES.get(table_key, '')
+    return DYNAMODB_TABLES.get(table, '')
 
-def get_s3_bucket(bucket_key: str) -> str:
+def get_bucket_name(bucket: str) -> str:
     """
-    Get S3 bucket name by key.
+    Gets the S3 bucket name.
     
     Args:
-        bucket_key: Key in S3_BUCKETS dictionary
+        bucket: Bucket identifier (e.g., 'images', 'documents')
         
     Returns:
-        str: Bucket name
+        str: S3 bucket name
     """
-    return S3_BUCKETS.get(bucket_key, '')
-
-def get_allowed_file_types(category: str) -> list:
-    """
-    Get allowed file types for a category.
-    
-    Args:
-        category: Category in ALLOWED_FILE_TYPES dictionary
-        
-    Returns:
-        list: List of allowed file extensions
-    """
-    return ALLOWED_FILE_TYPES.get(category, [])
-
-def get_openai_model(model_key: str = 'default') -> str:
-    """
-    Get OpenAI model name by key.
-    
-    Args:
-        model_key: Key in OPENAI_MODELS dictionary
-        
-    Returns:
-        str: Model name
-    """
-    return OPENAI_MODELS.get(model_key, OPENAI_MODELS['default'])
-
-def get_default_channel(channel_key: str) -> str:
-    """
-    Get default channel ID by key.
-    
-    Args:
-        channel_key: Key in DEFAULT_CHANNELS dictionary
-        
-    Returns:
-        str: Channel ID
-    """
-    return DEFAULT_CHANNELS.get(channel_key, '')
+    return S3_BUCKETS.get(bucket, '')

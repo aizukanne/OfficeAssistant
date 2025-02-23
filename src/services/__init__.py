@@ -1,112 +1,47 @@
-from .auth_service import authenticate
+from typing import Dict, Type, Any
 
-from .external_services import (
-    get_coordinates,
-    get_weather_data,
-    calendar_operations,
-    exchange_auth_code_for_tokens,
-    browse_internet,
-    google_search,
-    clean_website_data
-)
+from src.services.interfaces import ServiceInterface
+from src.services.external_services import ExternalService
+from src.services.storage_service import StorageService
+from src.services.slack_service import SlackService
+from src.services.openai_service import OpenAIService
+from src.services.odoo_service import OdooService
 
-from .odoo_service import (
-    get_models,
-    get_fields,
-    create_record,
-    fetch_records,
-    update_record,
-    delete_records,
-    print_record,
-    fetch_data_from_api,
-    get_database_schema
-)
+# Map of service types to their implementations
+SERVICE_REGISTRY: Dict[str, Type[ServiceInterface]] = {
+    'external': ExternalService,
+    'storage': StorageService,
+    'slack': SlackService,
+    'openai': OpenAIService,
+    'odoo': OdooService
+}
 
-from .openai_service import (
-    make_openai_api_call,
-    make_openai_vision_call,
-    make_openai_audio_call,
-    ask_openai_o1,
-    get_embedding,
-    serialize_chat_completion_message
-)
-
-from .slack_service import (
-    send_slack_message,
-    send_audio_to_slack,
-    send_file_to_slack,
-    send_as_pdf,
-    get_users,
-    get_channels,
-    manage_mute_status,
-    upload_image_to_s3
-)
-
-from .storage_service import (
-    save_message,
-    get_last_messages,
-    get_message_by_sort_id,
-    get_messages_in_range,
-    upload_to_s3,
-    download_from_s3,
-    delete_from_s3,
-    list_s3_files,
-    find_image_urls,
-    decimal_default
-)
+def get_service(service_type: str, **kwargs: Any) -> ServiceInterface:
+    """
+    Get a service instance.
+    
+    Args:
+        service_type: Type of service to get
+        **kwargs: Additional parameters for service initialization
+        
+    Returns:
+        ServiceInterface: Service instance
+        
+    Raises:
+        ValueError: If service type is invalid
+    """
+    if service_type not in SERVICE_REGISTRY:
+        raise ValueError(f"Invalid service type: {service_type}")
+        
+    service_class = SERVICE_REGISTRY[service_type]
+    return service_class(**kwargs)
 
 __all__ = [
-    # Auth Service
-    'authenticate',
-    
-    # External Services
-    'get_coordinates',
-    'get_weather_data',
-    'calendar_operations',
-    'exchange_auth_code_for_tokens',
-    'browse_internet',
-    'google_search',
-    'clean_website_data',
-    
-    # Odoo Service
-    'get_models',
-    'get_fields',
-    'create_record',
-    'fetch_records',
-    'update_record',
-    'delete_records',
-    'print_record',
-    'fetch_data_from_api',
-    'get_database_schema',
-    
-    # OpenAI Service
-    'make_openai_api_call',
-    'make_openai_vision_call',
-    'make_openai_audio_call',
-    'ask_openai_o1',
-    'get_embedding',
-    'serialize_chat_completion_message',
-    
-    # Slack Service
-    'send_slack_message',
-    'send_audio_to_slack',
-    'send_file_to_slack',
-    'send_as_pdf',
-    'get_users',
-    'get_channels',
-    'manage_mute_status',
-    'upload_image_to_s3',
-    
-    # Storage Service
-    'save_message',
-    'get_last_messages',
-    'get_message_by_sort_id',
-    'get_messages_in_range',
-    'upload_to_s3',
-    'download_from_s3',
-    'delete_from_s3',
-    'list_s3_files',
-    'find_image_urls',
-    'decimal_default',
-    'list_files'
+    'ServiceInterface',
+    'ExternalService',
+    'StorageService',
+    'SlackService',
+    'OpenAIService',
+    'OdooService',
+    'get_service'
 ]

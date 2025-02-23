@@ -1,51 +1,32 @@
 import json
+import nltk
+import os
 from typing import List, Dict, Any, Optional
 from decimal import Decimal
+from nltk.tokenize import word_tokenize, sent_tokenize
+from nltk.corpus import stopwords as nltk_stopwords
+from src.config.settings import NLTK_CONFIG
+from src.core.exceptions import DataProcessingError
+from src.core.logging import ServiceLogger
 
-def summarize_messages(messages: List[Dict]) -> Dict:
-    """
-    Creates a summary of a list of messages.
-    
-    Args:
-        messages: List of messages to summarize
-        
-    Returns:
-        Dict: Summary of the messages
-    """
-    if not messages:
-        return {"summary": "No message history available."}
-        
-    # Extract key information
-    message_count = len(messages)
-    unique_roles = set(msg['role'] for msg in messages)
-    
-    # Create a brief summary
-    summary = {
-        "message_count": message_count,
-        "participants": list(unique_roles),
-        "time_range": {
-            "start": messages[0]['sort_key'],
-            "end": messages[-1]['sort_key']
-        }
-    }
-    
-    return summary
+# Initialize logger
+logger = ServiceLogger('text_processing')
 
-def decimal_default(obj: Any) -> Any:
+def ensure_nltk_data():
     """
-    JSON serializer for objects not serializable by default json code.
+    Ensures required NLTK data is available.
+    Downloads missing packages if necessary.
+    """
+    nltk.data.path.append(NLTK_CONFIG['data_path'])
     
-    Args:
-        obj: Object to serialize
-        
-    Returns:
-        Any: Serialized object
-    """
-    if isinstance(obj, Decimal):
-        return str(obj)
-    raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
+    for package in NLTK_CONFIG['required_packages']:
+        try:
+            nltk.data.find(f'tokenizers/{package}')
+        except LookupError:
+            logger.info(f"Downloading NLTK package: {package}")
+            nltk.download(package)
 
-def load_stopwords(language: str) -> List[str]:
+def load_stopwords(language: str = 'english') -> List[str]:
     """
     Loads stopwords for the specified language.
     
@@ -54,11 +35,16 @@ def load_stopwords(language: str) -> List[str]:
         
     Returns:
         List[str]: List of stopwords
+        
+    Raises:
+        DataProcessingError: If stopwords cannot be loaded
     """
-    # This is a placeholder - actual implementation would need to:
-    # 1. Load stopwords from a file or database
-    # 2. Process and return them
-    return []
+    try:
+        ensure_nltk_data()
+        return list(nltk_stopwords.words(language))
+    except Exception as e:
+        logger.error(f"Failed to load stopwords for language: {language}", error=str(e))
+        raise DataProcessingError(f"Failed to load stopwords: {str(e)}")
 
 def clean_text(text: str) -> str:
     """
@@ -96,12 +82,56 @@ def extract_keywords(text: str, stopwords: List[str]) -> List[str]:
     cleaned_text = clean_text(text)
     
     # Split into words
-    words = cleaned_text.split()
+    words = word_tokenize(cleaned_text)
     
     # Remove stopwords
     keywords = [word for word in words if word not in stopwords]
     
     return keywords
+
+def rank_sentences(text: str, stopwords: List[str], max_sentences: int = 10) -> str:
+    """
+    Ranks sentences in text based on word frequency, returning top N sentences.
+    
+    Args:
+        text: Text to rank sentences from
+        stopwords: List of stopwords to exclude
+        max_sentences: Maximum number of sentences to return
+        
+    Returns:
+        str: Ranked sentences joined into text
+        
+    Raises:
+        DataProcessingError: If sentence ranking fails
+    """
+    try:
+        ensure_nltk_data()
+        
+        # Get word frequencies
+        word_frequencies = {}
+        for word in word_tokenize(text.lower()):
+            if word.isalpha() and word not in stopwords:
+                word_frequencies[word] = word_frequencies.get(word, 0) + 1
+
+        # Score sentences
+        sentence_scores = {}
+        sentences = sent_tokenize(text)
+        for sent in sentences:
+            for word in word_tokenize(sent.lower()):
+                if word in word_frequencies and len(sent.split(' ')) < 30:
+                    sentence_scores[sent] = sentence_scores.get(sent, 0) + word_frequencies[word]
+
+        # Get top sentences
+        sorted_sentences = sorted(sentence_scores, key=sentence_scores.get, reverse=True)
+        summary_sentences = sorted_sentences[:max_sentences]
+        
+        # Add periods if missing
+        summary = ' '.join([s if s.endswith('.') else f'{s}.' for s in summary_sentences])
+
+        return summary
+    except Exception as e:
+        logger.error("Failed to rank sentences", error=str(e))
+        raise DataProcessingError(f"Failed to rank sentences: {str(e)}")
 
 def find_urls(text: str) -> List[str]:
     """
@@ -241,3 +271,9 @@ def serialize_for_json(obj: Any) -> Any:
         return obj.__dict__
     else:
         return str(obj)
+
+# Initialize NLTK data on module load
+try:
+    ensure_nltk_data()
+except Exception as e:
+    logger.error("Failed to initialize NLTK data", error=str(e))

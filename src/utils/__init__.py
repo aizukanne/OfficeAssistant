@@ -3,6 +3,7 @@ from .text_processing import (
     decimal_default,
     load_stopwords,
     clean_text,
+    rank_sentences,
     extract_keywords,
     find_urls,
     truncate_text,
@@ -25,7 +26,7 @@ from .file_processing import (
     get_file_size
 )
 
-from .tools import tools, make_request
+from .tools import tools
 
 __all__ = [
     # Text Processing
@@ -33,6 +34,7 @@ __all__ = [
     'decimal_default',
     'load_stopwords',
     'clean_text',
+    'rank_sentences',
     'extract_keywords',
     'find_urls',
     'truncate_text',
@@ -54,6 +56,5 @@ __all__ = [
     'get_file_size',
     
     # Tools
-    'tools',
-    'make_request'
+    'tools'
 ]

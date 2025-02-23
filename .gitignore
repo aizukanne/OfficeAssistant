@@ -1,5 +1,8 @@
 # Project specific
 old_sources/
+CODE_REVIEW.md
+CODE_REVIEW_2.md
+CODE_REVIEW_ASSESSMENT.md
 
 # Python
 __pycache__/
