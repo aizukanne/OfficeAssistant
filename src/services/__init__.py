@@ -4,7 +4,10 @@ from .external_services import (
     get_coordinates,
     get_weather_data,
     calendar_operations,
-    exchange_auth_code_for_tokens
+    exchange_auth_code_for_tokens,
+    browse_internet,
+    google_search,
+    clean_website_data
 )
 
 from .odoo_service import (
@@ -61,6 +64,9 @@ __all__ = [
     'get_weather_data',
     'calendar_operations',
     'exchange_auth_code_for_tokens',
+    'browse_internet',
+    'google_search',
+    'clean_website_data',
     
     # Odoo Service
     'get_models',
@@ -101,5 +107,6 @@ __all__ = [
     'delete_from_s3',
     'list_s3_files',
     'find_image_urls',
-    'decimal_default'
+    'decimal_default',
+    'list_files'
 ]

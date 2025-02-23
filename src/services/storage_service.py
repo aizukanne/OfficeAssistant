@@ -273,3 +273,25 @@ def decimal_default(obj: Any) -> Any:
     if isinstance(obj, Decimal):
         return str(obj)
     raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
+
+def list_files(folder_prefix: str = 'uploads') -> Dict[str, str]:
+    """
+    Lists the files in a specified folder in the S3 bucket.
+    
+    Args:
+        folder_prefix: The prefix of the folder whose files to list (default: 'uploads')
+        
+    Returns:
+        Dict[str, str]: Dictionary mapping file names to their S3 URLs
+    """
+    response = s3_client.list_objects_v2(Bucket=docs_bucket_name, Prefix=folder_prefix)
+
+    files = {}
+    if 'Contents' in response:
+        for obj in response['Contents']:
+            if not obj['Key'].endswith('/'):  # Exclude any subfolders
+                file_url = f"https://{docs_bucket_name}.s3.amazonaws.com/{obj['Key']}"
+                file_name = obj['Key'].split('/')[-1]  # Extract the file name from the key
+                files[file_name] = file_url
+
+    return files
