@@ -80,7 +80,6 @@ ERPNEXT_API_KEY=your_erpnext_key
 ERPNEXT_API_SECRET=your_erpnext_secret
 OPENAI_API_KEY=your_openai_key
 OPENWEATHER_KEY=your_openweather_key
-WOLFRAM_ALPHA_APP_ID=your_wolfram_id
 
 # Odoo Configuration
 ODOO_URL=your_odoo_url

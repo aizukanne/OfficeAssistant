@@ -13,7 +13,6 @@ from .services import (
     # External Services
     get_coordinates,
     get_weather_data,
-    solve_math_problem,
     calendar_operations,
     exchange_auth_code_for_tokens,
     
@@ -103,7 +102,6 @@ __all__ = [
     # External Services
     'get_coordinates',
     'get_weather_data',
-    'solve_math_problem',
     'calendar_operations',
     'exchange_auth_code_for_tokens',
     

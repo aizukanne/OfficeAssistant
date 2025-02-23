@@ -21,8 +21,6 @@ from src.services import (
     make_openai_vision_call,
     manage_mute_status,
     # External Services
-    browse_internet,
-    google_search,
     get_coordinates,
     get_weather_data,
     get_message_by_sort_id,
@@ -45,6 +43,7 @@ from src.services import (
     delete_records,
     print_record
 )
+from src.utils.tools import browse_internet, google_search
 from src.utils import (
     load_stopwords,
     tools

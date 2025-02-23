@@ -9,7 +9,6 @@ from .settings import (
     ERPNEXT_API_SECRET,
     OPENAI_API_KEY,
     OPENWEATHER_KEY,
-    WOLFRAM_ALPHA_APP_ID,
     
     # Odoo Configuration
     ODOO_URL,
@@ -66,7 +65,6 @@ __all__ = [
     'ERPNEXT_API_SECRET',
     'OPENAI_API_KEY',
     'OPENWEATHER_KEY',
-    'WOLFRAM_ALPHA_APP_ID',
     
     # Odoo Configuration
     'ODOO_URL',

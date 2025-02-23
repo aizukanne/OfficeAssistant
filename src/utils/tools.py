@@ -1,5 +1,143 @@
 import requests
 from requests.exceptions import HTTPError, RequestException
+from typing import Dict, List, Optional, Any
+import os
+import json
+from bs4 import BeautifulSoup
+
+def google_search(search_term: str, **kwargs) -> Dict[str, Any]:
+    """
+    Performs a Google search and retrieves web content for the top five results.
+    
+    Args:
+        search_term: The primary term to search for
+        **kwargs: Additional search parameters (before, after, intext, allintext, and_condition, must_have)
+    
+    Returns:
+        Dict[str, Any]: Search results including titles, snippets, and URLs
+    """
+    api_key = os.getenv('GOOGLE_API_KEY')
+    cx = os.getenv('GOOGLE_SEARCH_CX')
+    
+    # Build search query
+    query = search_term
+    if kwargs.get('before'):
+        query += f" before:{kwargs['before']}"
+    if kwargs.get('after'):
+        query += f" after:{kwargs['after']}"
+    if kwargs.get('intext'):
+        query += f" intext:{kwargs['intext']}"
+    if kwargs.get('allintext'):
+        query += f" allintext:{kwargs['allintext']}"
+    if kwargs.get('and_condition'):
+        query += f" {kwargs['and_condition']}"
+    if kwargs.get('must_have'):
+        query += f" \"{kwargs['must_have']}\""
+
+    url = "https://www.googleapis.com/customsearch/v1"
+    params = {
+        'key': api_key,
+        'cx': cx,
+        'q': query,
+        'num': 5
+    }
+
+    try:
+        response = requests.get(url, params=params)
+        response.raise_for_status()
+        results = response.json()
+        
+        if 'items' not in results:
+            return {
+                'status': 'error',
+                'message': 'No results found',
+                'results': []
+            }
+
+        formatted_results = []
+        for item in results['items']:
+            formatted_results.append({
+                'title': item.get('title', ''),
+                'snippet': item.get('snippet', ''),
+                'url': item.get('link', ''),
+                'internal_urls': [link.get('href') for link in item.get('pagemap', {}).get('metatags', [])]
+            })
+
+        return {
+            'status': 'success',
+            'results': formatted_results
+        }
+
+    except Exception as e:
+        return {
+            'status': 'error',
+            'message': str(e),
+            'results': []
+        }
+
+def browse_internet(urls: List[str], full_text: bool = False) -> Dict[str, Any]:
+    """
+    Extracts and refines web content from a list of URLs.
+    
+    Args:
+        urls: List of URLs to process
+        full_text: If True, retrieves full content instead of summary
+    
+    Returns:
+        Dict[str, Any]: Processed content from the URLs
+    """
+    results = []
+    
+    for url in urls:
+        try:
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+            response = requests.get(url, headers=headers, timeout=10)
+            response.raise_for_status()
+            
+            soup = BeautifulSoup(response.text, 'html.parser')
+            
+            # Remove unwanted elements
+            for element in soup(['script', 'style', 'nav', 'footer', 'iframe']):
+                element.decompose()
+            
+            # Extract text content
+            text = soup.get_text(separator=' ', strip=True)
+            
+            # Extract title
+            title = soup.title.string if soup.title else url
+            
+            # Extract internal links
+            internal_links = []
+            for link in soup.find_all('a', href=True):
+                href = link['href']
+                if href.startswith('http'):
+                    internal_links.append(href)
+            
+            # Prepare content
+            if not full_text:
+                # Create a summary by taking first few paragraphs
+                paragraphs = [p.strip() for p in text.split('\n') if p.strip()]
+                text = ' '.join(paragraphs[:3])
+            
+            results.append({
+                'url': url,
+                'title': title,
+                'content': text,
+                'internal_urls': internal_links[:5]  # Limit to top 5 internal links
+            })
+            
+        except Exception as e:
+            results.append({
+                'url': url,
+                'error': str(e)
+            })
+    
+    return {
+        'status': 'success' if any(result.get('content') for result in results) else 'error',
+        'results': results
+    }
 
 def make_request(url, method='GET', headers=None, params=None, data=None):
     """
@@ -392,27 +530,6 @@ tools = [
                     }
                 },
                 "required": []
-            }
-        }
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "solve_maths",
-            "description": "Executes the provided Python code with the given parameters and returns the result.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "code": {
-                        "type": "string",
-                        "description": "The Python code to be executed."
-                    },
-                    "params": {
-                        "type": "object",
-                        "description": "A dictionary of parameters that the code may require."
-                    }
-                },
-                "required": ["code"]
             }
         }
     },
