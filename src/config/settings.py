@@ -1,12 +1,20 @@
 import os
-from typing import Dict, Any
+from typing import Dict, Any, Optional, List
 
-# API Keys and Credentials
+# API Keys and Authentication
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
-GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
-GOOGLE_SEARCH_CX = os.getenv('GOOGLE_SEARCH_CX')
+GOOGLE_API_KEY = os.getenv('CUSTOM_SEARCH_API_KEY')  # Updated to match env var
+GOOGLE_SEARCH_CX = os.getenv('CUSTOM_SEARCH_ID')     # Updated to match env var
 OPENWEATHER_KEY = os.getenv('OPENWEATHER_KEY')
 SLACK_BOT_TOKEN = os.getenv('SLACK_BOT_TOKEN')
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')         # Added
+ERPNEXT_API_KEY = os.getenv('ERPNEXT_API_KEY')       # Added
+ERPNEXT_API_SECRET = os.getenv('ERPNEXT_API_SECRET') # Added
+
+# Calendar Configuration
+CALENDAR_ID = os.getenv('CALENDAR_ID')
+CALENDAR_TOKEN = os.getenv('CALENDAR_TOKEN')
+CALENDAR_CREDENTIALS = os.getenv('CALENDAR_CREDENTIALS')
 
 # S3 Configuration
 S3_BUCKETS = {
@@ -51,28 +59,27 @@ HTTP_CONFIG = {
 }
 
 # Proxy Configuration
+PROXY_URL = os.getenv('PROXY_URL', '')  # Added direct export
 PROXY_CONFIG = {
-    'url': "http://aizukanne3:Ng8qM7DCChitRRuGDusL_country-US,CA@core-residential.evomi.com:1000",
-    'enabled': True
+    'url': PROXY_URL,
+    'enabled': bool(os.getenv('PROXY_ENABLED', False))
 }
-
-# User Agents
-USER_AGENTS = [
-    # Chrome (Windows, macOS, Linux)
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36",
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.81 Safari/537.36",
-    # Firefox (Windows, macOS, Linux)
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:91.0) Gecko/20100101 Firefox/91.0",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:93.0) Gecko/20100101 Firefox/93.0",
-    "Mozilla/5.0 (X11; Linux x86_64; rv:95.0) Gecko/20100101 Firefox/95.0"
-]
 
 # NLTK Configuration
+NLTK_DATA_PATH = "/opt/python/nltk_data"  # Added direct export
 NLTK_CONFIG = {
-    'data_path': "/opt/python/nltk_data",
-    'required_packages': ['punkt', 'stopwords', 'averaged_perceptron_tagger']
+    'data_path': NLTK_DATA_PATH,
+    'required_packages': ['punkt', 'stopwords']  # Only these packages are used in the codebase
 }
+
+# OpenAI Configuration
+OPENAI_MODELS = {  # Added
+    'default': 'gpt-4',
+    'vision': 'gpt-4-vision-preview',
+    'embedding': 'text-embedding-ada-002'
+}
+OPENAI_MAX_TOKENS = 2000  # Added
+OPENAI_TEMPERATURE = 0.7  # Added
 
 # Text Processing Configuration
 TEXT_PROCESSING = {
@@ -81,81 +88,110 @@ TEXT_PROCESSING = {
     'max_sentence_words': 30
 }
 
-def validate_config() -> Dict[str, Any]:
-    """
-    Validates the configuration and returns any missing required settings.
-    
-    Returns:
-        Dict[str, Any]: Dictionary of missing settings and their descriptions
-    """
+# File Processing Configuration
+FILE_SIZE_LIMIT_MB = 10  # Added
+ALLOWED_FILE_TYPES = [    # Added
+    'image/jpeg',
+    'image/png',
+    'image/gif',
+    'application/pdf',
+    'text/plain',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+]
+
+# Message Retention
+MESSAGE_TTL_DAYS = 20  # Added
+
+# Default Channel IDs
+DEFAULT_CHANNELS = {  # Added
+    'general': os.getenv('DEFAULT_CHANNEL_GENERAL', ''),
+    'notifications': os.getenv('DEFAULT_CHANNEL_NOTIFICATIONS', ''),
+    'email_notifications': os.getenv('DEFAULT_CHANNEL_EMAIL', ''),
+    'default_user': os.getenv('DEFAULT_USER_ID', '')
+}
+
+# AWS Configuration
+AWS_CONFIG = {
+    'region': os.getenv('AWS_REGION', 'us-east-1'),
+    'access_key_id': os.getenv('AWS_ACCESS_KEY_ID'),
+    'secret_access_key': os.getenv('AWS_SECRET_ACCESS_KEY')
+}
+
+# Odoo Configuration
+ODOO_URL = os.getenv('ODOO_URL')        # Added direct export
+ODOO_DB = os.getenv('ODOO_DB')          # Added direct export
+ODOO_LOGIN = os.getenv('ODOO_USERNAME')  # Added direct export
+ODOO_PASSWORD = os.getenv('ODOO_PASSWORD')  # Added direct export
+ODOO_CONFIG = {
+    'url': ODOO_URL,
+    'db': ODOO_DB,
+    'username': ODOO_LOGIN,
+    'password': ODOO_PASSWORD
+}
+
+def get_env(key: str, default: Any = None) -> Any:
+    """Get environment variable with default."""
+    return os.getenv(key, default)
+
+def validate_settings() -> Dict[str, str]:
+    """Validate all settings."""
     missing = {}
     
     # Check required API keys
     if not OPENAI_API_KEY:
         missing['OPENAI_API_KEY'] = "OpenAI API key is required"
     if not GOOGLE_API_KEY:
-        missing['GOOGLE_API_KEY'] = "Google API key is required"
+        missing['CUSTOM_SEARCH_API_KEY'] = "Google Custom Search API key is required"
     if not GOOGLE_SEARCH_CX:
-        missing['GOOGLE_SEARCH_CX'] = "Google Search CX is required"
+        missing['CUSTOM_SEARCH_ID'] = "Google Custom Search ID is required"
     if not OPENWEATHER_KEY:
         missing['OPENWEATHER_KEY'] = "OpenWeather API key is required"
     if not SLACK_BOT_TOKEN:
         missing['SLACK_BOT_TOKEN'] = "Slack bot token is required"
+    
+    # Check calendar configuration
+    if not CALENDAR_ID:
+        missing['CALENDAR_ID'] = "Calendar ID is required"
+    if not CALENDAR_TOKEN:
+        missing['CALENDAR_TOKEN'] = "Calendar token is required"
+    if not CALENDAR_CREDENTIALS:
+        missing['CALENDAR_CREDENTIALS'] = "Calendar credentials are required"
+        
+    # Check AWS configuration
+    if not AWS_CONFIG['access_key_id']:
+        missing['AWS_ACCESS_KEY_ID'] = "AWS access key ID is required"
+    if not AWS_CONFIG['secret_access_key']:
+        missing['AWS_SECRET_ACCESS_KEY'] = "AWS secret access key is required"
+        
+    # Check Odoo configuration
+    if not ODOO_URL:
+        missing['ODOO_URL'] = "Odoo URL is required"
+    if not ODOO_DB:
+        missing['ODOO_DB'] = "Odoo database name is required"
+    if not ODOO_LOGIN:
+        missing['ODOO_USERNAME'] = "Odoo username is required"
+    if not ODOO_PASSWORD:
+        missing['ODOO_PASSWORD'] = "Odoo password is required"
         
     return missing
 
-def get_proxy_url() -> str:
-    """
-    Returns the proxy URL if proxy is enabled.
-    
-    Returns:
-        str: Proxy URL if enabled, empty string otherwise
-    """
-    return PROXY_CONFIG['url'] if PROXY_CONFIG['enabled'] else ''
-
-def get_user_agent() -> str:
-    """
-    Returns a random user agent from the list.
-    
-    Returns:
-        str: Random user agent string
-    """
-    from random import choice
-    return choice(USER_AGENTS)
-
-def get_api_endpoint(service: str, endpoint: str) -> str:
-    """
-    Gets the API endpoint URL for a specific service and endpoint.
-    
-    Args:
-        service: Service name (e.g., 'openweather', 'google', 'slack')
-        endpoint: Endpoint name (e.g., 'geo', 'weather', 'calendar')
-        
-    Returns:
-        str: API endpoint URL
-    """
-    return API_ENDPOINTS.get(service, {}).get(endpoint, '')
-
-def get_table_name(table: str) -> str:
-    """
-    Gets the DynamoDB table name.
-    
-    Args:
-        table: Table identifier (e.g., 'user', 'assistant', 'usernames')
-        
-    Returns:
-        str: DynamoDB table name
-    """
+def get_dynamodb_table(table: str) -> str:
+    """Get DynamoDB table name."""
     return DYNAMODB_TABLES.get(table, '')
 
-def get_bucket_name(bucket: str) -> str:
-    """
-    Gets the S3 bucket name.
-    
-    Args:
-        bucket: Bucket identifier (e.g., 'images', 'documents')
-        
-    Returns:
-        str: S3 bucket name
-    """
+def get_s3_bucket(bucket: str) -> str:
+    """Get S3 bucket name."""
     return S3_BUCKETS.get(bucket, '')
+
+def get_allowed_file_types() -> List[str]:
+    """Get allowed file types."""
+    return ALLOWED_FILE_TYPES
+
+def get_openai_model(model_type: str = 'default') -> str:
+    """Get OpenAI model name."""
+    return OPENAI_MODELS.get(model_type, OPENAI_MODELS['default'])
+
+def get_default_channel(channel_type: str = 'general') -> str:
+    """Get default channel ID."""
+    return DEFAULT_CHANNELS.get(channel_type, '')
