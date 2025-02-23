@@ -14,21 +14,26 @@ logger = ServiceLogger('text_processing')
 
 def ensure_nltk_data():
     """
-    Ensures required NLTK data is available.
-    Downloads missing packages if necessary.
+    Verifies NLTK data is available.
+    - punkt and punkt_tab are in Lambda layer at /opt/nltk_data/tokenizers
+    - stopwords are in project root at /var/task/stopwords
     """
-    nltk.data.path.append(NLTK_CONFIG['data_path'])
+    # Set paths for NLTK data
+    nltk.data.path = ['/opt/nltk_data']  # Lambda layer path for tokenizers
     
-    for package in NLTK_CONFIG['required_packages']:
-        try:
-            nltk.data.find(f'tokenizers/{package}')
-        except LookupError:
-            logger.info(f"Downloading NLTK package: {package}")
-            nltk.download(package)
+    # Verify punkt is available
+    try:
+        nltk.data.find('tokenizers/punkt')
+    except LookupError:
+        logger.error("punkt tokenizer not found in Lambda layer")
+        raise DataProcessingError(
+            "Required NLTK punkt tokenizer missing. "
+            "Ensure punkt is included in the Lambda layer at /opt/nltk_data/tokenizers"
+        )
 
 def load_stopwords(language: str = 'english') -> List[str]:
     """
-    Loads stopwords for the specified language.
+    Loads stopwords from project root.
     
     Args:
         language: Language code (e.g., 'english')
@@ -40,8 +45,17 @@ def load_stopwords(language: str = 'english') -> List[str]:
         DataProcessingError: If stopwords cannot be loaded
     """
     try:
+        # Verify punkt tokenizer is available
         ensure_nltk_data()
-        return list(nltk_stopwords.words(language))
+        
+        # Load stopwords from project root (next to src directory)
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        stopwords_path = os.path.join(project_root, 'stopwords', language)
+        if not os.path.exists(stopwords_path):
+            raise DataProcessingError(f"Stopwords file not found for language: {language}")
+            
+        with open(stopwords_path, 'r') as f:
+            return [line.strip() for line in f if line.strip()]
     except Exception as e:
         logger.error(f"Failed to load stopwords for language: {language}", error=str(e))
         raise DataProcessingError(f"Failed to load stopwords: {str(e)}")

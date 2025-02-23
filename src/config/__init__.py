@@ -49,8 +49,8 @@ from .settings import (
     # Helper Functions
     get_env,
     validate_settings,
-    get_dynamodb_table,
-    get_s3_bucket,
+    get_table_name,
+    get_bucket_name,
     get_allowed_file_types,
     get_openai_model,
     get_default_channel,
@@ -111,8 +111,8 @@ __all__ = [
     # Helper Functions
     'get_env',
     'validate_settings',
-    'get_dynamodb_table',
-    'get_s3_bucket',
+    'get_table_name',
+    'get_bucket_name',
     'get_allowed_file_types',
     'get_openai_model',
     'get_default_channel',

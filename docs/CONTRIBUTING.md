@@ -107,6 +107,56 @@ if not api_key:
     raise ValueError("API_KEY environment variable is required")
 ```
 
+### 5. NLTK Data in Lambda
+
+- NLTK tokenizers (punkt, punkt_tab) are included in Lambda layer at /opt/nltk_data
+- Stopwords are included in project root at /var/task/stopwords
+- Don't attempt to download NLTK data at runtime
+- Verify data exists before using NLTK functions
+
+Project structure:
+```
+OfficeAssistant/
+  ├── lambda_function.py
+  ├── src/
+  └── stopwords/        # Stopwords at project root
+      └── english       # Stopwords file
+
+When deployed to Lambda:
+/opt/nltk_data/         # Lambda layer
+  └── tokenizers/
+      ├── punkt/
+      └── punkt_tab/
+
+/var/task/              # Your deployed project
+  ├── lambda_function.py
+  ├── src/
+  └── stopwords/
+      └── english
+```
+
+Example code:
+```python
+# Bad - Will fail in Lambda
+nltk.download('punkt')  # Can't write to filesystem
+
+# Good - Use provided data locations
+nltk.data.path = ['/opt/nltk_data']  # For tokenizers in Lambda layer
+
+try:
+    # Verify punkt tokenizer exists
+    nltk.data.find('tokenizers/punkt')
+    
+    # Load stopwords using relative path
+    project_root = os.path.dirname(os.path.dirname(__file__))
+    stopwords_path = os.path.join(project_root, 'stopwords', 'english')
+    with open(stopwords_path, 'r') as f:
+        stopwords = [line.strip() for line in f]
+except Exception as e:
+    print(f"{timestamp} [ERROR] [service_name] Failed to load NLTK data: {str(e)}")
+    raise
+```
+
 ## Development Process
 
 ### 1. Setting Up Development Environment

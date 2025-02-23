@@ -176,11 +176,11 @@ def validate_settings() -> Dict[str, str]:
         
     return missing
 
-def get_dynamodb_table(table: str) -> str:
+def get_table_name(table: str) -> str:
     """Get DynamoDB table name."""
     return DYNAMODB_TABLES.get(table, '')
 
-def get_s3_bucket(bucket: str) -> str:
+def get_bucket_name(bucket: str) -> str:
     """Get S3 bucket name."""
     return S3_BUCKETS.get(bucket, '')
 
