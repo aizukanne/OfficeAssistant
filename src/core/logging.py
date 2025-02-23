@@ -1,21 +1,17 @@
 import logging
-import logging.handlers
-import os
 from datetime import datetime
 from typing import Optional
 
 def setup_logger(
     name: str,
-    log_file: Optional[str] = None,
     level: int = logging.INFO,
     format_string: Optional[str] = None
 ) -> logging.Logger:
     """
-    Sets up a logger with file and console handlers.
+    Sets up a logger with console handler for AWS Lambda.
     
     Args:
         name: Logger name
-        log_file: Optional log file path
         level: Logging level
         format_string: Optional format string for log messages
         
@@ -32,24 +28,10 @@ def setup_logger(
     # Remove existing handlers
     logger.handlers = []
     
-    # Console handler
+    # Console handler (goes to CloudWatch in Lambda)
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
-    
-    # File handler if log_file is specified
-    if log_file:
-        # Create logs directory if it doesn't exist
-        os.makedirs(os.path.dirname(log_file), exist_ok=True)
-        
-        # Rotating file handler
-        file_handler = logging.handlers.RotatingFileHandler(
-            log_file,
-            maxBytes=10485760,  # 10MB
-            backupCount=5
-        )
-        file_handler.setFormatter(formatter)
-        logger.addHandler(file_handler)
     
     return logger
 
@@ -58,37 +40,36 @@ class ServiceLogger:
     
     def __init__(self, service_name: str):
         self.service_name = service_name
-        self.logger = setup_logger(
-            service_name,
-            f"logs/{service_name}/{datetime.now().strftime('%Y-%m-%d')}.log"
-        )
+        self.logger = setup_logger(service_name)
     
     def info(self, message: str, **kwargs):
         """Log info message."""
-        self.logger.info(self._format_message(message, **kwargs))
+        print(self._format_message('INFO', message, **kwargs))
     
     def error(self, message: str, **kwargs):
         """Log error message."""
-        self.logger.error(self._format_message(message, **kwargs))
+        print(self._format_message('ERROR', message, **kwargs))
     
     def warning(self, message: str, **kwargs):
         """Log warning message."""
-        self.logger.warning(self._format_message(message, **kwargs))
+        print(self._format_message('WARNING', message, **kwargs))
     
     def debug(self, message: str, **kwargs):
         """Log debug message."""
-        self.logger.debug(self._format_message(message, **kwargs))
+        print(self._format_message('DEBUG', message, **kwargs))
     
     def critical(self, message: str, **kwargs):
         """Log critical message."""
-        self.logger.critical(self._format_message(message, **kwargs))
+        print(self._format_message('CRITICAL', message, **kwargs))
     
-    def _format_message(self, message: str, **kwargs) -> str:
+    def _format_message(self, level: str, message: str, **kwargs) -> str:
         """Format log message with additional context."""
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        formatted_msg = f"{timestamp} [{level}] [{self.service_name}] {message}"
         if kwargs:
             context = ' '.join(f"{k}={v}" for k, v in kwargs.items())
-            return f"{message} [{context}]"
-        return message
+            formatted_msg += f" [{context}]"
+        return formatted_msg
 
 # Create loggers for different services
 external_logger = ServiceLogger('external_services')
@@ -110,13 +91,13 @@ def log_function_call(logger: ServiceLogger):
     def decorator(func):
         def wrapper(*args, **kwargs):
             func_name = func.__name__
-            logger.debug(f"Calling {func_name}", args=args, kwargs=kwargs)
+            print(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} [DEBUG] [{logger.service_name}] Calling {func_name} args={args} kwargs={kwargs}")
             try:
                 result = func(*args, **kwargs)
-                logger.debug(f"{func_name} completed successfully")
+                print(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} [DEBUG] [{logger.service_name}] {func_name} completed successfully")
                 return result
             except Exception as e:
-                logger.error(f"{func_name} failed", error=str(e))
+                print(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} [ERROR] [{logger.service_name}] {func_name} failed error={str(e)}")
                 raise
         return wrapper
     return decorator
@@ -133,11 +114,7 @@ def log_error(logger: ServiceLogger):
             try:
                 return func(*args, **kwargs)
             except Exception as e:
-                logger.error(
-                    f"Error in {func.__name__}",
-                    error=str(e),
-                    error_type=type(e).__name__
-                )
+                print(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} [ERROR] [{logger.service_name}] Error in {func.__name__} error={str(e)} error_type={type(e).__name__}")
                 raise
         return wrapper
     return decorator

@@ -9,7 +9,6 @@ from .text_processing import (
     truncate_text,
     format_message_for_display,
     parse_command_args,
-    generate_chat_summary,
     serialize_for_json
 )
 
@@ -40,7 +39,6 @@ __all__ = [
     'truncate_text',
     'format_message_for_display',
     'parse_command_args',
-    'generate_chat_summary',
     'serialize_for_json',
     
     # File Processing

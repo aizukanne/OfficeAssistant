@@ -38,6 +38,75 @@
        pass
    ```
 
+## AWS Lambda Guidelines
+
+### 1. Filesystem Restrictions
+
+- Lambda has a read-only filesystem except for /tmp
+- Never write files to the filesystem outside of /tmp
+- /tmp is limited to 512MB
+- /tmp is not persistent between invocations
+- Use S3 for persistent storage needs
+
+Example:
+```python
+# Bad - Will fail
+with open('logs/app.log', 'w') as f:
+    f.write('log message')
+
+# Good - Use /tmp if temporary files are needed
+with open('/tmp/temp_file.txt', 'w') as f:
+    f.write('temporary data')
+
+# Better - Use S3 for persistent storage
+s3_client.put_object(
+    Bucket='my-bucket',
+    Key='logs/app.log',
+    Body='log message'
+)
+```
+
+### 2. Logging Best Practices
+
+- Use print statements for logging (automatically captured by CloudWatch)
+- Include timestamp, level, and context in log messages
+- Don't create log files
+- Structure log messages for easy CloudWatch filtering
+
+Example:
+```python
+# Bad - Tries to write to filesystem
+logger.info("Processing data", file="logs/service.log")  # Will fail
+
+# Good - Uses print for CloudWatch
+print(f"{timestamp} [INFO] [service_name] Processing data id={data_id}")
+```
+
+### 3. Memory and Performance
+
+- Functions are limited to configured memory (128MB to 10GB)
+- CPU scales with memory
+- Execution time limit is 15 minutes
+- Cold starts can impact performance
+- Keep deployment package size small
+
+### 4. Environment Variables
+
+- Use environment variables for configuration
+- Don't hardcode sensitive information
+- Environment variables persist across invocations
+- Can be encrypted using KMS
+
+Example:
+```python
+import os
+
+api_key = os.getenv('API_KEY')
+if not api_key:
+    print(f"{timestamp} [ERROR] [service_name] API_KEY not configured")
+    raise ValueError("API_KEY environment variable is required")
+```
+
 ## Development Process
 
 ### 1. Setting Up Development Environment
@@ -179,16 +248,17 @@ def validate(data: Dict) -> None:
 
 ### 2. Error Logging
 
-- Log all errors with appropriate level
+- Use print statements for logging in AWS Lambda
+- Include timestamp, level, and service name
 - Include context in error messages
-- Use structured logging
+- Never write to filesystem in Lambda functions
 
 Example:
 ```python
 try:
     process_data(data)
 except ValidationError as e:
-    logger.error("Data validation failed", error=str(e), data=data)
+    print(f"{timestamp} [ERROR] [service_name] Data validation failed error={str(e)} data={data}")
 ```
 
 ## Security Guidelines
@@ -255,6 +325,8 @@ def expensive_operation() -> Dict:
 - [ ] Error handling implemented
 - [ ] Security considerations addressed
 - [ ] Performance impact considered
+- [ ] Lambda filesystem restrictions respected
+- [ ] Proper logging implemented for Lambda
 
 ### 2. Pull Request Process
 
@@ -277,6 +349,7 @@ def expensive_operation() -> Dict:
 - Test in staging environment
 - Follow deployment checklist
 - Monitor for issues
+- Verify Lambda configuration
 
 ## Getting Help
 

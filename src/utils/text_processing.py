@@ -218,7 +218,7 @@ def parse_command_args(text: str) -> Dict[str, str]:
             
     return args
 
-def generate_chat_summary(
+def summarize_messages(
     messages: List[Dict],
     max_length: Optional[int] = None
 ) -> str:
@@ -252,6 +252,20 @@ def generate_chat_summary(
         summary = truncate_text(summary, max_length)
         
     return summary
+
+def decimal_default(obj: Any) -> Any:
+    """
+    JSON encoder for Decimal objects.
+    
+    Args:
+        obj: Object to encode
+        
+    Returns:
+        Any: JSON-serializable object
+    """
+    if isinstance(obj, Decimal):
+        return str(obj)
+    raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
 
 def serialize_for_json(obj: Any) -> Any:
     """

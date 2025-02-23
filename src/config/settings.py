@@ -195,3 +195,16 @@ def get_openai_model(model_type: str = 'default') -> str:
 def get_default_channel(channel_type: str = 'general') -> str:
     """Get default channel ID."""
     return DEFAULT_CHANNELS.get(channel_type, '')
+
+def get_proxy_url() -> str:
+    """Get proxy URL if enabled."""
+    return PROXY_URL if PROXY_CONFIG['enabled'] else ''
+
+def get_user_agent() -> str:
+    """Get random user agent."""
+    from random import choice
+    return choice(USER_AGENTS)
+
+def get_api_endpoint(service: str, endpoint: str) -> str:
+    """Get API endpoint URL."""
+    return API_ENDPOINTS.get(service, {}).get(endpoint, '')

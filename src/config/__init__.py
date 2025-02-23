@@ -37,6 +37,9 @@ from .settings import (
     # Proxy Configuration
     PROXY_URL,
     
+    # HTTP Configuration
+    HTTP_CONFIG,
+    
     # Message Retention
     MESSAGE_TTL_DAYS,
     
@@ -50,7 +53,10 @@ from .settings import (
     get_s3_bucket,
     get_allowed_file_types,
     get_openai_model,
-    get_default_channel
+    get_default_channel,
+    get_proxy_url,
+    get_user_agent,
+    get_api_endpoint
 )
 
 __all__ = [
@@ -93,6 +99,9 @@ __all__ = [
     # Proxy Configuration
     'PROXY_URL',
     
+    # HTTP Configuration
+    'HTTP_CONFIG',
+    
     # Message Retention
     'MESSAGE_TTL_DAYS',
     
@@ -106,5 +115,8 @@ __all__ = [
     'get_s3_bucket',
     'get_allowed_file_types',
     'get_openai_model',
-    'get_default_channel'
+    'get_default_channel',
+    'get_proxy_url',
+    'get_user_agent',
+    'get_api_endpoint'
 ]

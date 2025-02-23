@@ -6,10 +6,12 @@ import aiohttp
 import requests
 import re
 import datetime
+import time
 from aiohttp.client_exceptions import ClientConnectorSSLError, ClientError
 from bs4 import BeautifulSoup
 from requests.exceptions import HTTPError, RequestException
 from typing import Optional, Tuple, Dict, Any, List
+from urllib.parse import quote_plus
 
 from src.config.settings import (
     get_proxy_url,
@@ -98,7 +100,7 @@ class ExternalService(ExternalServiceInterface):
                     raise
                 
             retry_count += 1
-            await asyncio.sleep(self.retry_delay)
+            time.sleep(self.retry_delay)  # Use synchronous sleep instead of async
 
     @log_function_call(logger)
     @log_error(logger)
