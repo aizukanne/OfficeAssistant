@@ -28,8 +28,11 @@ from src.core.exceptions import (
 )
 from src.core.logging import ServiceLogger, log_function_call, log_error
 from src.utils.text_processing import clean_text, rank_sentences, load_stopwords
-from src.services.storage_service import upload_to_s3, get_bucket_name
 from src.services.interfaces import ExternalServiceInterface
+from src.services import StorageService
+
+# Initialize storage service
+_storage_service = StorageService()
 
 class ExternalService(ExternalServiceInterface):
     """Implementation of external service interface."""
@@ -158,8 +161,7 @@ class ExternalService(ExternalServiceInterface):
                     }
                 })
             elif 'application/pdf' in content_type or 'application/msword' in content_type:
-                bucket_name = get_bucket_name('documents')
-                s3_url = upload_to_s3(bucket_name, content, content_type)
+                s3_url = _storage_service.upload_to_s3('documents', content, file_key=f"{int(time.time())}.{content_type.split('/')[-1]}", content_type=content_type)
                 response_list.append({
                     "type": "text",
                     "text": {

@@ -246,8 +246,8 @@ class ServiceFactory:
             from .external_services import ExternalService
             return ExternalService(**kwargs)
         elif service_type == "storage":
-            from .storage_service import StorageService
-            return StorageService(**kwargs)
+            from . import _storage_service
+            return _storage_service
         elif service_type == "message":
             from .slack_service import SlackService
             return SlackService(**kwargs)

@@ -13,7 +13,7 @@ from src.core.logging import ServiceLogger, log_function_call, log_error
 from src.core.security import rate_limit, validate_request, audit_log
 from src.core.performance import cached, monitor_performance
 from src.services.interfaces import MessageServiceInterface
-from src.services.storage_service import StorageService
+from src.services import _storage_service
 
 class SlackService(MessageServiceInterface):
     """Implementation of Slack messaging service."""
@@ -21,7 +21,7 @@ class SlackService(MessageServiceInterface):
     def __init__(self):
         """Initialize the service."""
         self.logger = ServiceLogger('slack_services')
-        self.storage = StorageService()
+        self.storage = _storage_service
         self.initialize()
     
     def initialize(self) -> None:

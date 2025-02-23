@@ -120,8 +120,10 @@ async def test_process_content_html(external_service):
 @pytest.mark.asyncio
 async def test_process_content_document(external_service):
     """Test processing document content."""
-    with patch('src.services.storage_service.upload_to_s3') as mock_upload:
-        mock_upload.return_value = 'https://test-bucket.s3.amazonaws.com/test.pdf'
+    mock_storage = MagicMock()
+    mock_storage.upload_to_s3.return_value = 'https://test-bucket.s3.amazonaws.com/test.pdf'
+    
+    with patch('src.services.external_services._storage_service', mock_storage):
         
         result = await external_service.process_content(
             b"Test PDF content",
