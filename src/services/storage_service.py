@@ -23,6 +23,16 @@ from src.interfaces import StorageServiceInterface
 # Initialize logger at module level
 logger = ServiceLogger('storage_services')
 
+# Create singleton instance
+_instance = None
+
+def get_instance():
+    """Get singleton instance."""
+    global _instance
+    if _instance is None:
+        _instance = StorageService()
+    return _instance
+
 class StorageService(StorageServiceInterface):
     """Implementation of storage service interface."""
     

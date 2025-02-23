@@ -123,7 +123,7 @@ async def test_process_content_document(external_service):
     mock_storage = MagicMock()
     mock_storage.upload_to_s3.return_value = 'https://test-bucket.s3.amazonaws.com/test.pdf'
     
-    with patch('src.services.external_services._storage_service', mock_storage):
+    with patch('src.services.storage_service.get_instance', return_value=mock_storage):
         
         result = await external_service.process_content(
             b"Test PDF content",

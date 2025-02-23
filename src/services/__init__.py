@@ -6,7 +6,6 @@ from src.services.slack_service import SlackService
 from src.services.openai_service import OpenAIService
 from src.services.odoo_service import OdooService
 from src.services.storage_functions import (
-    init_storage_service,
     save_message,
     get_last_messages,
     get_message_by_sort_id,
@@ -17,12 +16,6 @@ from src.services.storage_functions import (
     list_s3_files,
     find_image_urls
 )
-
-# Create singleton instances
-_storage_service = StorageService()
-
-# Initialize storage functions
-init_storage_service(_storage_service)
 
 # Map of service types to their implementations
 SERVICE_REGISTRY: Dict[str, Type[ServiceInterface]] = {
