@@ -69,15 +69,6 @@ def test_openai_service_types():
     result = run_mypy(files)
     assert result['success'], f"Type errors found:\n" + "\n".join(result['errors'])
 
-def test_odoo_service_types():
-    """Test Odoo service type hints."""
-    files = [
-        'src/services/odoo/service.py',
-        'src/services/odoo/service.pyi'
-    ]
-    result = run_mypy(files)
-    assert result['success'], f"Type errors found:\n" + "\n".join(result['errors'])
-
 def test_external_service_types():
     """Test external service type hints."""
     files = [
@@ -132,7 +123,6 @@ def test_stub_completeness():
         'storage',
         'slack',
         'openai',
-        'odoo',
         'external'
     ]
     
@@ -159,7 +149,6 @@ def test_stub_consistency():
         'storage',
         'slack',
         'openai',
-        'odoo',
         'external'
     ]
     

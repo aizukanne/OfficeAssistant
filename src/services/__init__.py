@@ -3,7 +3,6 @@ from typing import Dict, Type, Any
 from src.interfaces import ServiceInterface
 
 # Import services from their new locations
-from .auth_service import AuthService
 from .storage import (
     StorageService,
     save_message,
@@ -18,25 +17,14 @@ from .storage import (
 )
 from .slack import SlackService
 from .openai import OpenAIService
-from .odoo import OdooService
 from .external import ExternalService
-
-# Create auth service instance for global use
-_auth_service = AuthService()
-
-# Export authenticate function
-def authenticate() -> Dict[str, Any]:
-    """Authenticate and get session."""
-    return _auth_service.authenticate()
 
 # Map of service types to their implementations
 SERVICE_REGISTRY: Dict[str, Type[ServiceInterface]] = {
-    'auth': AuthService,
     'external': ExternalService,
     'storage': StorageService,
     'slack': SlackService,
-    'openai': OpenAIService,
-    'odoo': OdooService
+    'openai': OpenAIService
 }
 
 def get_service(service_type: str, **kwargs: Any) -> ServiceInterface:
@@ -60,14 +48,11 @@ def get_service(service_type: str, **kwargs: Any) -> ServiceInterface:
 
 __all__ = [
     'ServiceInterface',
-    'AuthService',
     'ExternalService',
     'StorageService',
     'SlackService',
     'OpenAIService',
-    'OdooService',
     'get_service',
-    'authenticate',
     
     # Storage Service Methods
     'save_message',

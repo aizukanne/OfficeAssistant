@@ -76,7 +76,6 @@ external_logger = ServiceLogger('external_services')
 storage_logger = ServiceLogger('storage_services')
 slack_logger = ServiceLogger('slack_services')
 openai_logger = ServiceLogger('openai_services')
-odoo_logger = ServiceLogger('odoo_services')
 
 # Create logger for core functionality
 core_logger = ServiceLogger('core')

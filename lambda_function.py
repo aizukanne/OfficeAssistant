@@ -33,15 +33,7 @@ from src.services import (
     send_as_pdf,
     # OpenAI Services
     ask_openai_o1,
-    get_embedding,
-    # Odoo Services
-    get_models,
-    get_fields,
-    create_record,
-    fetch_records,
-    update_record,
-    delete_records,
-    print_record
+    get_embedding
 )
 from src.utils import (
     load_stopwords,
@@ -234,12 +226,5 @@ available_functions = {
     "list_files": list_files,
     "ask_openai_o1": ask_openai_o1,
     "get_embedding": get_embedding,
-    "manage_mute_status": manage_mute_status,
-    "get_models": get_models,
-    "get_fields": get_fields,
-    "create_record": create_record,
-    "fetch_records": fetch_records,
-    "update_record": update_record,
-    "delete_records": delete_records,
-    "print_record": print_record
+    "manage_mute_status": manage_mute_status
 }

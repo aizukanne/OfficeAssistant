@@ -5,16 +5,8 @@ from .settings import (
     GOOGLE_API_KEY,
     GEMINI_API_KEY,
     CALENDAR_ID,
-    ERPNEXT_API_KEY,
-    ERPNEXT_API_SECRET,
     OPENAI_API_KEY,
     OPENWEATHER_KEY,
-    
-    # Odoo Configuration
-    ODOO_URL,
-    ODOO_DB,
-    ODOO_LOGIN,
-    ODOO_PASSWORD,
     
     # DynamoDB Tables
     DYNAMODB_TABLES,
@@ -67,16 +59,8 @@ __all__ = [
     'GOOGLE_API_KEY',
     'GEMINI_API_KEY',
     'CALENDAR_ID',
-    'ERPNEXT_API_KEY',
-    'ERPNEXT_API_SECRET',
     'OPENAI_API_KEY',
     'OPENWEATHER_KEY',
-    
-    # Odoo Configuration
-    'ODOO_URL',
-    'ODOO_DB',
-    'ODOO_LOGIN',
-    'ODOO_PASSWORD',
     
     # DynamoDB Tables
     'DYNAMODB_TABLES',

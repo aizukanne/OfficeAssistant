@@ -77,10 +77,6 @@ class OpenAIError(APIError):
     """OpenAI-specific errors."""
     pass
 
-class OdooError(APIError):
-    """Odoo-specific errors."""
-    pass
-
 class ExternalServiceError(APIError):
     """External service specific errors."""
     pass

@@ -7,7 +7,6 @@ from src.services.external_services import ExternalService
 from src.services.storage_service import StorageService
 from src.services.slack_service import SlackService
 from src.services.openai_service import OpenAIService
-from src.services.odoo_service import OdooService
 
 def test_get_external_service():
     """Test getting external service."""
@@ -37,13 +36,6 @@ def test_get_openai_service():
         assert isinstance(service, OpenAIService)
         mock_service.assert_called_once()
 
-def test_get_odoo_service():
-    """Test getting Odoo service."""
-    with patch('src.services.odoo_service.OdooService') as mock_service:
-        service = get_service('odoo')
-        assert isinstance(service, OdooService)
-        mock_service.assert_called_once()
-
 def test_get_service_with_params():
     """Test getting service with parameters."""
     params = {'param1': 'value1', 'param2': 'value2'}
@@ -64,8 +56,7 @@ def test_service_interface():
         ExternalService,
         StorageService,
         SlackService,
-        OpenAIService,
-        OdooService
+        OpenAIService
     ]
     
     for service_class in services:
@@ -82,8 +73,7 @@ def test_service_required_methods():
         ExternalService,
         StorageService,
         SlackService,
-        OpenAIService,
-        OdooService
+        OpenAIService
     ]
     
     for service_class in services:
@@ -95,8 +85,7 @@ def test_service_required_methods():
     ('external', ExternalService),
     ('storage', StorageService),
     ('slack', SlackService),
-    ('openai', OpenAIService),
-    ('odoo', OdooService)
+    ('openai', OpenAIService)
 ])
 def test_service_registry(service_type, service_class):
     """Test service registry mapping."""
@@ -119,8 +108,7 @@ def test_service_validation():
         ExternalService,
         StorageService,
         SlackService,
-        OpenAIService,
-        OdooService
+        OpenAIService
     ]
     
     for service_class in services:
@@ -135,8 +123,7 @@ def test_service_logger():
         ExternalService,
         StorageService,
         SlackService,
-        OpenAIService,
-        OdooService
+        OpenAIService
     ]
     
     for service_class in services:

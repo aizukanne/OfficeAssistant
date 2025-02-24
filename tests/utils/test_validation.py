@@ -256,7 +256,6 @@ def validate_test_fixtures(
             'mock_storage_service',
             'mock_slack_service',
             'mock_openai_service',
-            'mock_odoo_service',
             'mock_external_service'
         ]
     

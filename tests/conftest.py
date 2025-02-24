@@ -9,7 +9,6 @@ import requests
 from src.services.storage import StorageService
 from src.services.slack import SlackService
 from src.services.openai import OpenAIService
-from src.services.odoo import OdooService
 from src.services.external import ExternalService
 
 from .utils.test_utils import (
@@ -73,15 +72,6 @@ def mock_openai_service() -> MagicMock:
         OpenAIService,
         generate_content="Generated content",
         get_embedding=[0.1, 0.2, 0.3]
-    )
-
-@pytest.fixture
-def mock_odoo_service() -> MagicMock:
-    """Create mock Odoo service."""
-    return create_service_mock(
-        OdooService,
-        create_record=1,
-        update_record=True
     )
 
 @pytest.fixture
@@ -149,11 +139,7 @@ def mock_env(monkeypatch: pytest.MonkeyPatch) -> None:
         'AWS_ACCESS_KEY_ID': 'test-key',
         'AWS_SECRET_ACCESS_KEY': 'test-secret',
         'SLACK_BOT_TOKEN': 'test-token',
-        'OPENAI_API_KEY': 'test-key',
-        'ODOO_URL': 'http://test.odoo.com',
-        'ODOO_DB': 'test-db',
-        'ODOO_USERNAME': 'test-user',
-        'ODOO_PASSWORD': 'test-pass'
+        'OPENAI_API_KEY': 'test-key'
     }
     for key, value in env_vars.items():
         monkeypatch.setenv(key, value)
