@@ -1,114 +1,86 @@
-from typing import Optional, Any
+"""Custom exceptions for the application."""
+from typing import Any
 
 class BaseError(Exception):
-    """Base class for all custom exceptions."""
-    def __init__(self, message: str, code: Optional[str] = None, details: Optional[Any] = None):
+    """Base error for all custom exceptions."""
+    def __init__(self, message: str, **context: Any) -> None:
         self.message = message
-        self.code = code
-        self.details = details
-        super().__init__(self.message)
+        self.context = context
+        super().__init__(message)
 
-class ConfigurationError(BaseError):
-    """Raised when there is a configuration-related error."""
+class ServiceError(BaseError):
+    """Base error for service-level exceptions."""
     pass
 
-class APIError(BaseError):
-    """Raised when an API request fails."""
+class ValidationError(ServiceError):
+    """Validation error."""
     pass
 
-class ValidationError(BaseError):
-    """Raised when data validation fails."""
+class StorageError(ServiceError):
+    """Storage-related errors."""
     pass
 
-class StorageError(BaseError):
-    """Raised when storage operations fail."""
+class NetworkError(ServiceError):
+    """Network-related errors."""
     pass
 
-class AuthenticationError(BaseError):
-    """Raised when authentication fails."""
+class ConfigurationError(ServiceError):
+    """Configuration-related errors."""
     pass
 
-class RateLimitError(BaseError):
-    """Raised when rate limits are exceeded."""
+class AuthenticationError(ServiceError):
+    """Authentication-related errors."""
     pass
 
-class ResourceNotFoundError(BaseError):
-    """Raised when a requested resource is not found."""
+class APIError(ServiceError):
+    """API-related errors."""
     pass
 
-class ServiceUnavailableError(BaseError):
-    """Raised when a service is unavailable."""
+class DatabaseError(ServiceError):
+    """Database-related errors."""
     pass
 
-class DataProcessingError(BaseError):
-    """Raised when data processing fails."""
+class TimeoutError(ServiceError):
+    """Timeout-related errors."""
     pass
 
-class NetworkError(BaseError):
-    """Raised when network operations fail."""
+class RateLimitError(ServiceError):
+    """Rate limit exceeded errors."""
     pass
 
-class TimeoutError(BaseError):
-    """Raised when an operation times out."""
+class SecurityError(ServiceError):
+    """Security-related errors."""
     pass
 
-class SecurityError(BaseError):
-    """Raised when a security-related error occurs."""
+class DataProcessingError(ServiceError):
+    """Data processing errors."""
     pass
 
-class InputError(BaseError):
-    """Raised when input validation fails."""
+# Error categories for specific services
+class StorageServiceError(StorageError):
+    """Storage service specific errors."""
     pass
 
-class DatabaseError(BaseError):
-    """Raised when database operations fail."""
+class S3Error(StorageError):
+    """S3-specific errors."""
     pass
 
-def handle_error(error: Exception) -> dict:
-    """
-    Handles exceptions and returns a standardized error response.
-    
-    Args:
-        error: The exception to handle
-        
-    Returns:
-        dict: Standardized error response
-    """
-    if isinstance(error, BaseError):
-        return {
-            'status': 'error',
-            'code': error.code or error.__class__.__name__,
-            'message': error.message,
-            'details': error.details
-        }
-    
-    # Handle standard Python exceptions
-    if isinstance(error, ValueError):
-        return {
-            'status': 'error',
-            'code': 'ValueError',
-            'message': str(error),
-            'details': None
-        }
-    elif isinstance(error, TypeError):
-        return {
-            'status': 'error',
-            'code': 'TypeError',
-            'message': str(error),
-            'details': None
-        }
-    elif isinstance(error, KeyError):
-        return {
-            'status': 'error',
-            'code': 'KeyError',
-            'message': str(error),
-            'details': None
-        }
-    
-    # Generic error handler
-    return {
-        'status': 'error',
-        'code': 'UnhandledError',
-        'message': str(error),
-        'details': None
-    }
+class DynamoDBError(DatabaseError):
+    """DynamoDB-specific errors."""
+    pass
+
+class SlackError(APIError):
+    """Slack-specific errors."""
+    pass
+
+class OpenAIError(APIError):
+    """OpenAI-specific errors."""
+    pass
+
+class OdooError(APIError):
+    """Odoo-specific errors."""
+    pass
+
+class ExternalServiceError(APIError):
+    """External service specific errors."""
+    pass

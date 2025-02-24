@@ -1,0 +1,158 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.12, 3.13]
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-cov mypy flake8 black isort
+
+    - name: Check code formatting
+      run: |
+        black --check src tests
+        isort --check-only src tests
+        flake8 src tests
+
+    - name: Type checking
+      run: |
+        mypy src
+
+    - name: Run tests
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        ODOO_URL: ${{ secrets.ODOO_URL }}
+        ODOO_DB: ${{ secrets.ODOO_DB }}
+        ODOO_USERNAME: ${{ secrets.ODOO_USERNAME }}
+        ODOO_PASSWORD: ${{ secrets.ODOO_PASSWORD }}
+      run: |
+        # Run unit tests
+        pytest tests/unit --cov=src --cov-report=xml --cov-report=term-missing
+
+        # Run integration tests if credentials are available
+        if [ -n "$AWS_ACCESS_KEY_ID" ]; then
+          pytest tests/integration -v
+        fi
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v2
+      with:
+        file: ./coverage.xml
+        fail_ci_if_error: true
+        verbose: true
+
+    - name: Check coverage threshold
+      run: |
+        coverage report --fail-under=90
+
+  performance:
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-benchmark
+
+    - name: Run performance tests
+      run: |
+        pytest tests/unit --benchmark-only
+
+    - name: Upload benchmark results
+      uses: actions/upload-artifact@v2
+      with:
+        name: benchmark-results
+        path: .benchmarks/
+
+  documentation:
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest doctest-cli
+
+    - name: Check doctest examples
+      run: |
+        pytest --doctest-modules src
+
+    - name: Validate docstrings
+      run: |
+        python -c "
+        import sys
+        from src.utils.docstring import validate_docstring
+        import src
+        issues = []
+        for module in sys.modules:
+            if module.startswith('src.'):
+                mod = sys.modules[module]
+                issues.extend(validate_docstring(mod))
+        if issues:
+            print('Docstring issues found:')
+            for issue in issues:
+                print(f'- {issue}')
+            sys.exit(1)
+        "
+
+  security:
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install bandit safety
+
+    - name: Run security checks
+      run: |
+        bandit -r src
+        safety check
