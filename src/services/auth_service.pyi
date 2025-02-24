@@ -1,0 +1,16 @@
+"""Type stubs for authentication service."""
+from typing import Dict, Any, Optional
+from src.interfaces import ServiceInterface
+
+class AuthService(ServiceInterface):
+    """Authentication service type hints."""
+    
+    def __init__(self) -> None: ...
+    
+    def initialize(self) -> None: ...
+    
+    def validate_config(self) -> Dict[str, str]: ...
+    
+    def authenticate(self) -> Dict[str, Any]: ...
+    
+    def get_session(self) -> Optional[str]: ...

@@ -54,7 +54,7 @@ from src.services import (
 )
 
 # Initialize NLTK data path
-nltk.data.path.append(NLTK_DATA_PATH)
+nltk.data.path = [NLTK_DATA_PATH]  # Override default paths to use only our configured path
 
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """

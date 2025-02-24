@@ -1,28 +1,60 @@
-"""Authentication service implementation."""
+"""Authentication service implementation.
+
+Provides functionality for:
+- User authentication
+- Session management
+- Token validation
+- Access control
+
+Configuration:
+- Requires valid Odoo credentials
+- Environment variables must be set
+- Network access needed
+
+Example:
+    >>> service = AuthService()
+    >>> result = service.authenticate()
+    >>> result['session_id']
+    'abc123...'
+"""
 import os
 import requests
 from typing import Dict, Any, Optional
 
-from src.config.settings import ODOO_CONFIG
+from src.utils.logging import log_message, log_error
+from src.utils.decorators import log_function_call
+from src.utils.error_handling import handle_service_error
 from src.core.exceptions import (
     AuthenticationError,
+    ValidationError,
     ConfigurationError,
     NetworkError
 )
-from src.utils.logging import log_message, log_error
-from src.utils.decorators import log_function_call
-from src.utils.error_handling import (
-    handle_service_error,
-    wrap_exceptions,
-    retry_with_backoff
-)
 from src.interfaces import ServiceInterface
+from src.config.settings import ODOO_CONFIG
 
+__version__ = '1.0.0'
+
+@log_function_call('auth')
 class AuthService(ServiceInterface):
-    """Implementation of authentication service."""
+    """Authentication service implementation.
+    
+    Handles user authentication and session management.
+    
+    Attributes:
+        session_id: Optional[str]
+            Current session ID if authenticated
+    
+    Example:
+        >>> auth = AuthService()
+        >>> auth.initialize()
+        >>> auth.authenticate()
+        {'session_id': 'abc123...'}
+    """
     
     def __init__(self) -> None:
         """Initialize the service."""
+        self.session_id: Optional[str] = None
         self.initialize()
     
     def initialize(self) -> None:
@@ -58,21 +90,27 @@ class AuthService(ServiceInterface):
         return missing
 
     @log_function_call('auth')
-    @retry_with_backoff(max_retries=3, exceptions=(requests.exceptions.RequestException,))
-    @wrap_exceptions(AuthenticationError, operation='authenticate')
-    def authenticate(self) -> Dict[str, Any]:
+    @handle_service_error('auth', 'authenticate', AuthenticationError)
+    def authenticate(self) -> Dict[str, str]:
         """
         Authenticate with Odoo and get session cookie.
         
         Returns:
-            Dict[str, Any]: Authentication result containing either:
+            Dict[str, str]: Authentication result containing:
                 - session_id: Session cookie value
-                - error: Error message if authentication failed
                 
         Raises:
             AuthenticationError: If authentication fails
-            NetworkError: If connection fails
-            ConfigurationError: If configuration is invalid
+                Context includes:
+                - attempt_count: Number of attempts
+                - error_details: Specific error info
+            ConfigurationError: If credentials missing
+                Context includes:
+                - missing_vars: List of missing variables
+            NetworkError: If service unavailable
+                Context includes:
+                - service_url: Attempted URL
+                - error_code: HTTP status code
         """
         try:
             # Validate configuration
@@ -108,24 +146,22 @@ class AuthService(ServiceInterface):
                     reason="No session ID returned"
                 )
             
+            self.session_id = session_id
             log_message('INFO', 'auth', 'Authentication successful')
             return {'session_id': session_id}
             
         except requests.exceptions.HTTPError as e:
-            handle_service_error(
-                'auth',
-                'authenticate',
-                AuthenticationError,
+            raise AuthenticationError(
+                "Authentication failed",
                 status_code=e.response.status_code if e.response else None,
                 error_response=e.response.text if e.response else None
-            )(e)
+            ) from e
         except requests.exceptions.RequestException as e:
-            handle_service_error(
-                'auth',
-                'authenticate',
-                NetworkError,
-                error_type=type(e).__name__
-            )(e)
+            raise NetworkError(
+                "Network error during authentication",
+                error_type=type(e).__name__,
+                error_details=str(e)
+            ) from e
             
     def get_session(self) -> Optional[str]:
         """
@@ -134,8 +170,14 @@ class AuthService(ServiceInterface):
         Returns:
             Optional[str]: Session ID if authenticated, None otherwise
         """
-        try:
-            result = self.authenticate()
-            return result.get('session_id')
-        except Exception:
-            return None
+        return self.session_id
+
+# Singleton instance
+_instance: Optional[AuthService] = None
+
+def get_instance() -> AuthService:
+    """Get singleton AuthService instance."""
+    global _instance
+    if _instance is None:
+        _instance = AuthService()
+    return _instance

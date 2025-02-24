@@ -15,11 +15,13 @@ logger = ServiceLogger('text_processing')
 def ensure_nltk_data():
     """
     Verifies NLTK data is available.
-    - punkt and punkt_tab are in Lambda layer at /opt/nltk_data/tokenizers
+    - punkt and punkt_tab are in Lambda layer at {data_path}/tokenizers
     - stopwords are in project root at /var/task/stopwords
+    
+    Uses NLTK_CONFIG['data_path'] from settings for data location.
     """
     # Set paths for NLTK data
-    nltk.data.path = ['/opt/nltk_data']  # Lambda layer path for tokenizers
+    nltk.data.path = [NLTK_CONFIG['data_path']]  # Use configured path from settings
     
     # Verify punkt is available
     try:
@@ -28,7 +30,7 @@ def ensure_nltk_data():
         logger.error("punkt tokenizer not found in Lambda layer")
         raise DataProcessingError(
             "Required NLTK punkt tokenizer missing. "
-            "Ensure punkt is included in the Lambda layer at /opt/nltk_data/tokenizers"
+            f"Ensure punkt is included in the Lambda layer at {NLTK_CONFIG['data_path']}/tokenizers"
         )
 
 def load_stopwords(language: str = 'english') -> List[str]:

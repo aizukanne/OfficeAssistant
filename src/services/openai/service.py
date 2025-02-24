@@ -2,7 +2,7 @@
 import os
 from typing import Dict, List, Any, Optional
 import openai
-from openai.error import OpenAIError, RateLimitError as OpenAIRateLimitError
+from openai import OpenAIError, RateLimitError as OpenAIRateLimitError
 
 from src.config.settings import get_api_endpoint
 from src.core.exceptions import (
