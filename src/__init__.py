@@ -7,25 +7,11 @@ from .handlers import (
     handle_tool_calls
 )
 from .services import (
-    # Auth Service
-    authenticate,
-    
     # External Services
     get_coordinates,
     get_weather_data,
     calendar_operations,
     exchange_auth_code_for_tokens,
-    
-    # Odoo Service
-    get_models,
-    get_fields,
-    create_record,
-    fetch_records,
-    update_record,
-    delete_records,
-    print_record,
-    fetch_data_from_api,
-    get_database_schema,
     
     # OpenAI Service
     make_openai_api_call,
@@ -95,25 +81,11 @@ __all__ = [
     'handle_message_content',
     'handle_tool_calls',
     
-    # Auth Service
-    'authenticate',
-    
     # External Services
     'get_coordinates',
     'get_weather_data',
     'calendar_operations',
     'exchange_auth_code_for_tokens',
-    
-    # Odoo Service
-    'get_models',
-    'get_fields',
-    'create_record',
-    'fetch_records',
-    'update_record',
-    'delete_records',
-    'print_record',
-    'fetch_data_from_api',
-    'get_database_schema',
     
     # OpenAI Service
     'make_openai_api_call',

@@ -17,7 +17,13 @@ from .storage import (
 )
 from .slack import SlackService
 from .openai import OpenAIService
-from .external import ExternalService
+from .external import (
+    ExternalService,
+    get_coordinates,
+    get_weather_data,
+    browse_internet,
+    google_search
+)
 
 # Map of service types to their implementations
 SERVICE_REGISTRY: Dict[str, Type[ServiceInterface]] = {
@@ -53,6 +59,12 @@ __all__ = [
     'SlackService',
     'OpenAIService',
     'get_service',
+    
+    # External Service Functions
+    'get_coordinates',
+    'get_weather_data',
+    'browse_internet',
+    'google_search',
     
     # Storage Service Methods
     'save_message',
