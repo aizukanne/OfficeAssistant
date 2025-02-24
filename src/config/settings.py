@@ -8,8 +8,6 @@ GOOGLE_SEARCH_CX = os.getenv('CUSTOM_SEARCH_ID')     # Updated to match env var
 OPENWEATHER_KEY = os.getenv('OPENWEATHER_KEY')
 SLACK_BOT_TOKEN = os.getenv('SLACK_BOT_TOKEN')
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')         # Added
-ERPNEXT_API_KEY = os.getenv('ERPNEXT_API_KEY')       # Added
-ERPNEXT_API_SECRET = os.getenv('ERPNEXT_API_SECRET') # Added
 
 # Calendar Configuration
 CALENDAR_ID = os.getenv('CALENDAR_ID')
@@ -118,18 +116,6 @@ AWS_CONFIG = {
     'secret_access_key': os.getenv('AWS_SECRET_ACCESS_KEY')
 }
 
-# Odoo Configuration
-ODOO_URL = os.getenv('ODOO_URL')        # Added direct export
-ODOO_DB = os.getenv('ODOO_DB')          # Added direct export
-ODOO_LOGIN = os.getenv('ODOO_USERNAME')  # Added direct export
-ODOO_PASSWORD = os.getenv('ODOO_PASSWORD')  # Added direct export
-ODOO_CONFIG = {
-    'url': ODOO_URL,
-    'db': ODOO_DB,
-    'username': ODOO_LOGIN,
-    'password': ODOO_PASSWORD
-}
-
 def get_env(key: str, default: Any = None) -> Any:
     """Get environment variable with default."""
     return os.getenv(key, default)
@@ -163,16 +149,6 @@ def validate_settings() -> Dict[str, str]:
         missing['AWS_ACCESS_KEY_ID'] = "AWS access key ID is required"
     if not AWS_CONFIG['secret_access_key']:
         missing['AWS_SECRET_ACCESS_KEY'] = "AWS secret access key is required"
-        
-    # Check Odoo configuration
-    if not ODOO_URL:
-        missing['ODOO_URL'] = "Odoo URL is required"
-    if not ODOO_DB:
-        missing['ODOO_DB'] = "Odoo database name is required"
-    if not ODOO_LOGIN:
-        missing['ODOO_USERNAME'] = "Odoo username is required"
-    if not ODOO_PASSWORD:
-        missing['ODOO_PASSWORD'] = "Odoo password is required"
         
     return missing
 

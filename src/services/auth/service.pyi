@@ -13,7 +13,7 @@ class AuthService(ServiceInterface):
     
     def authenticate(self) -> Dict[str, str]:
         """
-        Authenticate user and get session.
+        Authenticate and get session.
         
         Returns:
             Dict containing:
