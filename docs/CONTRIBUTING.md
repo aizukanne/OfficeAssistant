@@ -1,420 +1,247 @@
 # Contributing Guidelines
 
-## Code Style and Standards
+## Overview
+This document outlines the standards and practices for contributing to this project. All contributions must follow these guidelines to maintain code quality and consistency.
 
-### Python Style Guide
+## Code Organization
 
-1. Follow PEP 8 conventions:
-   - Use 4 spaces for indentation
-   - Maximum line length of 79 characters
-   - Two blank lines before top-level functions and classes
-   - One blank line before class methods
-   - Use descriptive variable names
+### Directory Structure
+```
+src/
+  ├── services/
+  │   ├── __init__.py           # Only imports/exports
+  │   ├── service_name/
+  │   │   ├── __init__.py       # Public interface
+  │   │   ├── service.py        # Service implementation
+  │   │   ├── functions.py      # Public functions
+  │   │   ├── service.pyi       # Type hint stubs
+  │   │   └── constants.py      # Constants and configs
+  └── interfaces/
+      └── __init__.py           # All interfaces
+```
 
-2. Type Hints:
-   ```python
-   from typing import List, Dict, Optional
-
-   def process_data(items: List[str], config: Optional[Dict] = None) -> bool:
-       pass
-   ```
-
-3. Docstrings:
-   ```python
-   def function_name(arg1: str, arg2: int) -> bool:
-       """
-       Brief description of function.
-       
-       Args:
-           arg1: Description of arg1
-           arg2: Description of arg2
-           
-       Returns:
-           bool: Description of return value
-           
-       Raises:
-           ValueError: Description of when this error is raised
-       """
-       pass
-   ```
-
-## AWS Lambda Guidelines
-
-### 1. Filesystem Restrictions
-
-- Lambda has a read-only filesystem except for /tmp
-- Never write files to the filesystem outside of /tmp
-- /tmp is limited to 512MB
-- /tmp is not persistent between invocations
-- Use S3 for persistent storage needs
-
-Example:
+### Function Implementation Pattern
 ```python
-# Bad - Will fail
-with open('logs/app.log', 'w') as f:
-    f.write('log message')
-
-# Good - Use /tmp if temporary files are needed
-with open('/tmp/temp_file.txt', 'w') as f:
-    f.write('temporary data')
-
-# Better - Use S3 for persistent storage
-s3_client.put_object(
-    Bucket='my-bucket',
-    Key='logs/app.log',
-    Body='log message'
+@log_function_call('service_name')
+@with_error_recovery(
+    operation=lambda *args, **kwargs: original_operation(*args, **kwargs),
+    recovery=lambda *args, **kwargs: fallback_operation(*args, **kwargs)
 )
-```
-
-### 2. Logging Best Practices
-
-- Use print statements for logging (automatically captured by CloudWatch)
-- Include timestamp, level, and context in log messages
-- Don't create log files
-- Structure log messages for easy CloudWatch filtering
-
-Example:
-```python
-# Bad - Tries to write to filesystem
-logger.info("Processing data", file="logs/service.log")  # Will fail
-
-# Good - Uses print for CloudWatch
-print(f"{timestamp} [INFO] [service_name] Processing data id={data_id}")
-```
-
-### 3. Memory and Performance
-
-- Functions are limited to configured memory (128MB to 10GB)
-- CPU scales with memory
-- Execution time limit is 15 minutes
-- Cold starts can impact performance
-- Keep deployment package size small
-
-### 4. Environment Variables
-
-- Use environment variables for configuration
-- Don't hardcode sensitive information
-- Environment variables persist across invocations
-- Can be encrypted using KMS
-
-Example:
-```python
-import os
-
-api_key = os.getenv('API_KEY')
-if not api_key:
-    print(f"{timestamp} [ERROR] [service_name] API_KEY not configured")
-    raise ValueError("API_KEY environment variable is required")
-```
-
-### 5. NLTK Data in Lambda
-
-- NLTK tokenizers (punkt, punkt_tab) are included in Lambda layer at /opt/nltk_data
-- Stopwords are included in project root at /var/task/stopwords
-- Don't attempt to download NLTK data at runtime
-- Verify data exists before using NLTK functions
-
-Project structure:
-```
-OfficeAssistant/
-  ├── lambda_function.py
-  ├── src/
-  └── stopwords/        # Stopwords at project root
-      └── english       # Stopwords file
-
-When deployed to Lambda:
-/opt/nltk_data/         # Lambda layer
-  └── tokenizers/
-      ├── punkt/
-      └── punkt_tab/
-
-/var/task/              # Your deployed project
-  ├── lambda_function.py
-  ├── src/
-  └── stopwords/
-      └── english
-```
-
-Example code:
-```python
-# Bad - Will fail in Lambda
-nltk.download('punkt')  # Can't write to filesystem
-
-# Good - Use provided data locations
-nltk.data.path = ['/opt/nltk_data']  # For tokenizers in Lambda layer
-
-try:
-    # Verify punkt tokenizer exists
-    nltk.data.find('tokenizers/punkt')
+def function_name(param: type) -> return_type:
+    """
+    Function description.
     
-    # Load stopwords using relative path
-    project_root = os.path.dirname(os.path.dirname(__file__))
-    stopwords_path = os.path.join(project_root, 'stopwords', 'english')
-    with open(stopwords_path, 'r') as f:
-        stopwords = [line.strip() for line in f]
-except Exception as e:
-    print(f"{timestamp} [ERROR] [service_name] Failed to load NLTK data: {str(e)}")
-    raise
+    Args:
+        param: Parameter description
+    
+    Returns:
+        Description of return value
+    
+    Raises:
+        ErrorType: Error description
+            Context includes:
+            - key: value description
+    
+    Example:
+        >>> result = function_name("test")
+        >>> result["key"]
+        'value'
+    """
+    try:
+        service = get_instance()
+        return service.operation(*args, **kwargs)
+    except Exception as e:
+        handle_service_error(
+            'service_name',
+            'operation_name',
+            ErrorType,
+            **context
+        )(e)
 ```
 
-## Development Process
+## Logging Standards
 
-### 1. Setting Up Development Environment
+### Function Logging
+- Use @log_function_call decorator
+- Include service name and operation
+- Add performance metrics
+- Provide operation context
 
-```bash
-# Clone repository
-git clone [repository-url]
-cd OfficeAssistant
+### Error Logging
+- Use log_error utility
+- Include error type and details
+- Preserve stack traces
+- Add relevant context
 
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
-pip install -r requirements-dev.txt
-
-# Install pre-commit hooks
-pre-commit install
-```
-
-### 2. Creating a New Feature
-
-1. Create a new branch:
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
-
-2. Implement your changes:
-   - Follow code style guidelines
-   - Add unit tests
-   - Update documentation
-   - Add type hints
-   - Add proper error handling
-
-3. Run tests:
-   ```bash
-   pytest
-   pytest --cov=src
-   ```
-
-4. Run linters:
-   ```bash
-   flake8 src tests
-   mypy src
-   ```
-
-### 3. Submitting Changes
-
-1. Commit your changes:
-   ```bash
-   git add .
-   git commit -m "Description of changes"
-   ```
-
-2. Push to your fork:
-   ```bash
-   git push origin feature/your-feature-name
-   ```
-
-3. Create a pull request:
-   - Use the pull request template
-   - Link related issues
-   - Provide clear description of changes
-   - Include test results
-
-## Testing Guidelines
-
-### 1. Unit Tests
-
-- Write tests for all new code
-- Use pytest fixtures for common setup
-- Mock external dependencies
-- Test edge cases and error conditions
-
-Example:
+### Log Format
 ```python
-def test_function_success():
-    """Test successful case."""
-    result = function()
-    assert result == expected_value
-
-def test_function_error():
-    """Test error case."""
-    with pytest.raises(ValueError):
-        function(invalid_input)
+f"{timestamp} [{level}] [{service}] {message} {context}"
 ```
 
-### 2. Integration Tests
-
-- Test interaction between components
-- Use real dependencies when possible
-- Clean up test data after tests
-
-Example:
-```python
-@pytest.mark.integration
-def test_service_integration():
-    """Test service integration."""
-    service = Service()
-    result = service.process()
-    assert result.status == 'success'
-```
-
-## Documentation Guidelines
-
-### 1. Code Documentation
-
-- Add docstrings to all public functions and classes
-- Include type hints
-- Document exceptions
-- Add inline comments for complex logic
-
-### 2. Project Documentation
-
-- Update README.md for significant changes
-- Add new documentation files when needed
-- Keep setup guide updated
-- Document configuration changes
+### Context Format
+- Use key=value pairs
+- Sort alphabetically
+- Sanitize values
+- Limit value length
 
 ## Error Handling
 
-### 1. Custom Exceptions
+### Error Hierarchy
+- Extend BaseError for all custom exceptions
+- Use service-specific error types
+- Include error context
+- Preserve error chains
 
-- Use custom exceptions for specific error cases
-- Inherit from appropriate base exception
-- Include helpful error messages
-
-Example:
+### Recovery Pattern
 ```python
-class ValidationError(BaseError):
-    """Raised when validation fails."""
-    pass
-
-def validate(data: Dict) -> None:
-    if not data:
-        raise ValidationError("Data cannot be empty")
+@with_error_recovery(
+    operation=lambda: original_operation(),
+    recovery=lambda: fallback_operation()
+)
+def function_name():
+    """Implementation with recovery."""
 ```
 
-### 2. Error Logging
+### Error Context
+- Include operation details
+- Add input parameters
+- Track recovery attempts
+- Monitor performance
 
-- Use print statements for logging in AWS Lambda
-- Include timestamp, level, and service name
-- Include context in error messages
-- Never write to filesystem in Lambda functions
+### Resource Cleanup
+- Use context managers
+- Implement proper cleanup
+- Handle cleanup errors
+- Log cleanup status
 
-Example:
+## Documentation
+
+### Docstring Format
 ```python
-try:
-    process_data(data)
-except ValidationError as e:
-    print(f"{timestamp} [ERROR] [service_name] Data validation failed error={str(e)} data={data}")
+def function_name(param: type) -> return_type:
+    """
+    Concise description.
+    
+    Detailed description if needed.
+    
+    Args:
+        param: Parameter description
+            Additional details:
+            - requirement 1
+            - requirement 2
+    
+    Returns:
+        return_type: Description of return value
+            Contains:
+            - key1 (type): description
+            - key2 (type): description
+    
+    Raises:
+        ErrorType: Error description
+            Context includes:
+            - key1: description
+            - key2: description
+    
+    Example:
+        >>> result = function_name("test")
+        >>> result["key"]
+        'value'
+    """
 ```
 
-## Security Guidelines
+### Type Hints
+- Use .pyi stub files
+- Specify all types
+- Use Optional for optional params
+- Document complex types
 
-### 1. Input Validation
+### Examples
+- Include working examples
+- Show error handling
+- Demonstrate recovery
+- Test all examples
 
-- Validate all input data
-- Sanitize user input
-- Use request validation decorators
+## Testing Requirements
 
-Example:
+### Test Coverage
+- Test all public functions
+- Cover error scenarios
+- Test recovery mechanisms
+- Verify examples
+
+### Test Pattern
 ```python
-@validate_request(schema)
-def process_input(data: Dict) -> None:
-    pass
+def test_function_success(mock_service):
+    """Test successful operation."""
+    result = function_name(param)
+    assert expected_condition
+
+def test_function_error(mock_service):
+    """Test error handling."""
+    with pytest.raises(ErrorType) as exc:
+        function_name(param)
+    assert error_context in exc.value.context
+
+def test_function_recovery(mock_service):
+    """Test recovery mechanism."""
+    result = function_name(param)
+    assert result == fallback_value
 ```
 
-### 2. Authentication
+## Pull Request Process
 
-- Use proper authentication mechanisms
-- Validate tokens
-- Log security events
+1. Code Changes
+   - Follow directory structure
+   - Implement function patterns
+   - Add proper error handling
+   - Include documentation
 
-### 3. Rate Limiting
+2. Testing
+   - Add comprehensive tests
+   - Verify error handling
+   - Test recovery mechanisms
+   - Check documentation
 
-- Implement rate limiting for APIs
-- Log rate limit violations
-- Use appropriate limits for different endpoints
+3. Documentation
+   - Update docstrings
+   - Add type hints
+   - Include examples
+   - Update guides
 
-## Performance Considerations
+4. Review Process
+   - Code review
+   - Documentation review
+   - Test review
+   - Performance review
 
-### 1. Caching
+## Version Control
 
-- Use caching for expensive operations
-- Set appropriate TTL values
-- Clear cache when data changes
+### Commit Messages
+```
+type(scope): brief description
 
-Example:
-```python
-@cached(ttl=300)
-def expensive_operation() -> Dict:
-    pass
+Detailed description of changes.
+
+BREAKING CHANGE: description of breaking changes
 ```
 
-### 2. Database Operations
+### Types
+- feat: New feature
+- fix: Bug fix
+- refactor: Code change
+- docs: Documentation
+- test: Test changes
+- chore: Maintenance
 
-- Use connection pooling
-- Optimize queries
-- Use appropriate indexes
+## Review Checklist
 
-### 3. Async Operations
-
-- Use async/await for I/O operations
-- Handle concurrent requests properly
-- Use connection pools
-
-## Review Process
-
-### 1. Code Review Checklist
-
-- [ ] Follows code style guidelines
-- [ ] Includes tests
-- [ ] Documentation updated
-- [ ] Error handling implemented
-- [ ] Security considerations addressed
-- [ ] Performance impact considered
-- [ ] Lambda filesystem restrictions respected
-- [ ] Proper logging implemented for Lambda
-
-### 2. Pull Request Process
-
-1. Create descriptive pull request
-2. Link related issues
-3. Include test results
-4. Address review comments
-5. Update based on feedback
-
-## Release Process
-
-### 1. Version Control
-
-- Follow semantic versioning
-- Update version numbers
-- Create release notes
-
-### 2. Deployment
-
-- Test in staging environment
-- Follow deployment checklist
-- Monitor for issues
-- Verify Lambda configuration
-
-## Getting Help
-
-- Check existing documentation
-- Search closed issues
-- Ask in appropriate channels
-- Provide context when asking questions
-
-## Code of Conduct
-
-- Be respectful and inclusive
-- Follow project guidelines
-- Help others when possible
-- Report inappropriate behavior
-
-## License
-
-This project is licensed under [License Name]. See LICENSE file for details.
+- [ ] Follows directory structure
+- [ ] Implements function patterns
+- [ ] Includes proper logging
+- [ ] Has error handling
+- [ ] Contains recovery mechanisms
+- [ ] Complete documentation
+- [ ] Comprehensive tests
+- [ ] Type hints added
+- [ ] Examples included
+- [ ] Performance considered
