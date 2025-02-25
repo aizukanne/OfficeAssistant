@@ -1,0 +1,16 @@
+aiohttp>=3.8.0
+beautifulsoup4>=4.9.3
+boto3>=1.26.0
+botocore>=1.29.0
+fpdf>=1.7.2
+markdown2>=2.4.0
+nltk>=3.6.0
+openai>=1.0.0
+openpyxl>=3.0.0
+PyPDF2>=2.0.0
+python-docx>=0.8.11
+requests>=2.26.0
+semantic-router>=0.1.0
+typing-extensions>=4.0.0
+python-dateutil>=2.8.2
+lxml>=4.9.0
