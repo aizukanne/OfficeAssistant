@@ -61,7 +61,7 @@ The application follows a modular architecture organized into the following comp
 
 ### Prerequisites
 
-- Python 3.8+
+- Python 3.11+
 - AWS Account
 - Slack Workspace with Bot Token
 - OpenAI API Key
