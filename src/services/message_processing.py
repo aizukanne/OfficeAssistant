@@ -1,9 +1,12 @@
 import json
+import nltk
 from typing import Dict, List, Any, Set
 from decimal import Decimal
 from bson import ObjectId
 from nltk.tokenize import sent_tokenize, word_tokenize
 from ..core.error_handlers import decimal_default
+
+nltk.data.path.append("/opt/python/nltk_data")
 
 def load_stopwords(file_path: str) -> Set[str]:
     """

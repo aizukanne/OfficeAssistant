@@ -11,12 +11,6 @@ ERPNEXT_API_KEY = os.getenv('ERPNEXT_API_KEY')
 ERPNEXT_API_SECRET = os.getenv('ERPNEXT_API_SECRET')
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 
-# ERPNext Configuration
-ODOO_URL = os.getenv('ODOO_URL')
-ODOO_DB = os.getenv('ODOO_DB')
-ODOO_LOGIN = os.getenv('ODOO_LOGIN')
-ODOO_PASSWORD = os.getenv('ODOO_PASSWORD')
-
 # Proxy Configuration
 PROXY_URL = os.getenv('PROXY_URL')
 

@@ -1,0 +1,131 @@
+{
+    "encoder_type": "openai",
+    "encoder_name": "text-embedding-3-small",
+    "routes": [
+        {
+            "name": "chitchat",
+            "utterances": [
+                "how's the weather today?",
+                "how are things going?",
+                "lovely weather today",
+                "the weather is horrendous",
+                "let's go to the chippy"
+            ],
+            "description": null,
+            "function_schemas": null,
+            "llm": null,
+            "score_threshold": 0.3,
+            "metadata": {}
+        },
+        {
+            "name": "research",
+            "utterances": [
+                "can you help me find information on AI?",
+                "what is the latest news on climate change?",
+                "tell me more about quantum computing",
+                "I need to know about the history of the internet",
+                "how does blockchain technology work?",
+                "what are the benefits of renewable energy?",
+                "could you look up recent advancements in medicine?"
+            ],
+            "description": null,
+            "function_schemas": null,
+            "llm": null,
+            "score_threshold": 0.3,
+            "metadata": {}
+        },
+        {
+            "name": "writing",
+            "utterances": [
+                "can you help me write a letter?",
+                "please draft an email for me",
+                "I need to write a story",
+                "can you generate a poem?",
+                "help me compose a thank you note",
+                "write a speech for my presentation",
+                "create a summary of this article"
+            ],
+            "description": null,
+            "function_schemas": null,
+            "llm": null,
+            "score_threshold": 0.3,
+            "metadata": {}
+        },
+        {
+            "name": "numerical_analysis",
+            "utterances": [
+                "can you solve this equation?",
+                "help me with this calculation",
+                "perform a statistical analysis on this data",
+                "what's the result of this formula?",
+                "calculate the average of these numbers",
+                "find the median of this dataset",
+                "analyze the trends in this data",
+                "determine the standard deviation for this dataset",
+                "what is the probability of picking one red ball and one blue ball from a jar containing ten red balls and ten blue balls?",
+                "how do I calculate the variance of this data?",
+                "can you compute the correlation between these variables?",
+                "what is the likelihood of this event occurring?",
+                "calculate the regression coefficients for this dataset",
+                "estimate the confidence interval for this mean",
+                "compute the p-value for this hypothesis test"
+            ],
+            "description": null,
+            "function_schemas": null,
+            "llm": null,
+            "score_threshold": 0.3,
+            "metadata": {}
+        },
+        {
+            "name": "navigation",
+            "utterances": [
+                "How do I get to the nearest gas station?",
+                "Can you give me directions to the airport?",
+                "What is the best route to downtown?",
+                "Show me the way to the nearest hospital.",
+                "How far is it to the nearest coffee shop?",
+                "Which bus should I take to get to the museum?",
+                "Can you find a nearby hotel?",
+                "How do I get to Main Street?",
+                "What is the quickest way to the train station?",
+                "Where is the nearest pharmacy?",
+                "Tell me how to reach the library.",
+                "I need directions to the city center.",
+                "What are the travel options to get to the university?",
+                "How can I find the nearest park?",
+                "Where is the closest grocery store?"
+            ],
+            "description": null,
+            "function_schemas": null,
+            "llm": null,
+            "score_threshold": 0.3,
+            "metadata": {}
+        },
+        {
+            "name": "odoo_erp",
+            "utterances": [
+                "Can you provide a report of all customer invoices issued in the last month?",
+                "What are the total payments received, including transaction details, for the specified period?",
+                "Provide a report of all vendor bill transactions (paid, unpaid, and adjusted) for the specified period.",
+                "How do I access the details of all refunds processed and invoice cancellations with corresponding reasons for the past year?",
+                "Can you show me all transactions related to cash discounts applied to customer invoices this month?",
+                "What is the total amount of outstanding invoices and an aged receivables analysis for each customer for the specified period?",
+                "Provide a breakdown of transactions by payment type (e.g., credit cards, checks) for the specified period.",
+                "Can I retrieve a detailed report of all bank reconciliations conducted in the current month?",
+                "What is the amount of deferred revenue currently recorded in the system from customer transactions?",
+                "Could you provide an overview of all expense transactions recorded for the marketing department?",
+                "What is the status of all payment terms associated with customer invoices issued last quarter?",
+                "Can I view the total revenue generated from product sales across different regions for the past year?",
+                "What are the historical transactions related to invoice cancellations and their corresponding reasons?",
+                "Could you provide the transaction history for all payments made to each vendor in the last six months?",
+                "Can you provide details of commission earned by each salesperson year to date?",
+                "Can you provide details of inventory to be received this month?"
+            ],
+            "description": null,
+            "function_schemas": null,
+            "llm": null,
+            "score_threshold": 0.3,
+            "metadata": {}
+        }
+    ]
+}

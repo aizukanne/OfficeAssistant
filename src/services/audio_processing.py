@@ -9,6 +9,7 @@ from io import BytesIO
 
 from ..core.config import SLACK_BOT_TOKEN
 from ..core.error_handlers import APIError
+from ..clients.openai_client import client
 
 def download_audio_to_memory(url: str) -> BytesIO:
     """
@@ -50,6 +51,42 @@ def download_audio_to_memory(url: str) -> BytesIO:
             details={"error": str(e)}
         )
 
+def transcribe_speech_from_memory(audio_stream):
+    # Reset the stream's position to the beginning
+    audio_stream.seek(0)
+
+    # Create a temporary file to store the audio content
+    with tempfile.NamedTemporaryFile(suffix='.m4a', delete=False) as tmp_file:
+        tmp_file.write(audio_stream.read())
+        tmp_file_path = tmp_file.name
+
+    # Open the temporary file for reading
+    with open(tmp_file_path, 'rb') as audio_file:
+        # Create a transcription using OpenAI's Whisper model
+        response = client.audio.transcriptions.create(
+            model="whisper-1",
+            file=audio_file
+        )
+
+    # Remove the temporary file  
+    os.remove(tmp_file_path)
+    return response.text
+
+def transcribe_multiple_urls(urls):
+    results = []
+    print(f'Transcribing audio from: {urls}')
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        # Start download and transcription operations and execute them concurrently
+        future_to_url = {executor.submit(process_url, url): url for url in urls}
+        for future in concurrent.futures.as_completed(future_to_url):
+            url = future_to_url[future]
+            try:
+                results.append(future.result())
+            except Exception as exc:
+                print(f'{url} generated an exception: {exc}')
+    print(results)
+    return results
+
 def process_url(url: str) -> Optional[str]:
     """
     Process a single audio URL - download and transcribe.
@@ -62,7 +99,7 @@ def process_url(url: str) -> Optional[str]:
     """
     try:
         audio_stream = download_audio_to_memory(url)
-        transcription = transcribe_speech_from_memory(audio_stream)  # This will need to be imported from openai_client
+        transcription = transcribe_speech_from_memory(audio_stream)
         print(f"Success: Transcription completed for URL: {url}")
         return transcription
     except Exception as e:

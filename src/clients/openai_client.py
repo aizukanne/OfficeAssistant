@@ -1,8 +1,13 @@
 import os
 import json
 import openai
+import requests
+import base64
+import tempfile
 from decimal import Decimal
 from bson import ObjectId
+
+from ..core.config import OPENAI_TOOLS
 
 # Initialize OpenAI client
 client = openai.OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
@@ -27,7 +32,7 @@ def make_openai_call(client, conversations, temperature=None, model="gpt-4o-2024
             "model": model,
             "messages": conversations,
             "max_tokens": 5500,
-            "tools": tools  # This will need to be imported from config
+            "tools": OPENAI_TOOLS  # This will need to be imported from config
         }
         
         # Add temperature parameter only if it's provided
@@ -161,42 +166,6 @@ def text_to_speech(text, file_suffix=".mp3"):
         tmp_file_path = tmp_file.name
 
     return tmp_file_path
-
-def transcribe_speech_from_memory(audio_stream):
-    # Reset the stream's position to the beginning
-    audio_stream.seek(0)
-
-    # Create a temporary file to store the audio content
-    with tempfile.NamedTemporaryFile(suffix='.m4a', delete=False) as tmp_file:
-        tmp_file.write(audio_stream.read())
-        tmp_file_path = tmp_file.name
-
-    # Open the temporary file for reading
-    with open(tmp_file_path, 'rb') as audio_file:
-        # Create a transcription using OpenAI's Whisper model
-        response = client.audio.transcriptions.create(
-            model="whisper-1",
-            file=audio_file
-        )
-
-    # Remove the temporary file  
-    os.remove(tmp_file_path)
-    return response.text
-
-def transcribe_multiple_urls(urls):
-    results = []
-    print(f'Transcribing audio from: {urls}')
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        # Start download and transcription operations and execute them concurrently
-        future_to_url = {executor.submit(process_url, url): url for url in urls}
-        for future in concurrent.futures.as_completed(future_to_url):
-            url = future_to_url[future]
-            try:
-                results.append(future.result())
-            except Exception as exc:
-                print(f'{url} generated an exception: {exc}')
-    print(results)
-    return results
 
 # Helper function for JSON serialization
 def decimal_default(obj):
