@@ -381,14 +381,18 @@ tools = [
     {
         "type": "function",
         "function": {
-            "name": "get_models",
-            "description": "Fetches the list of all models available in the Odoo instance, optionally filtered by a name pattern for any of the names from a list of names provided in the form ['sale','account']. A model represents a database table and defines the structure of the data stored within it. Each model typically corresponds to a specific business object or entity, such as customers, sales orders, products, invoices, etc..",
+            "name": "odoo_get_mapped_models",
+            "description": "Fetches available mapped models and optionally fields for each model from the Odoo API. This function retrieves information about mapped models, optionally including their field mappings.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "name_like": {
-                        "type": "object",
-                        "description": "A list of substrings to filter the model names in the form ['sale','account']."
+                    "include_fields": {
+                        "type": "boolean",
+                        "description": "Whether to include field mappings in the response. Defaults to True."
+                    },
+                    "model_name": {
+                        "type": ["string", "null"],
+                        "description": "Optional filter to retrieve information for a specific model only. It can be the name or synonym for the model in question. For example, for customers, partners, customers, clients etc can be used. Defaults to None."
                     }
                 },
                 "required": []
@@ -398,91 +402,72 @@ tools = [
     {
         "type": "function",
         "function": {
-            "name": "get_fields",
-            "description": "Fetches the fields of a specified model from the Odoo instance. This function handles authentication and then queries the Odoo API to retrieve the field information for the given model.",
+            "name": "odoo_get_mapped_fields",
+            "description": "Fetches field mappings for a specific external model from the Odoo API. This function first authenticates with the Odoo instance using global credentials and then retrieves the field mapping information.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "model_name": {
+                    "model": {
                         "type": "string",
-                        "description": "The technical name of the model whose fields are to be fetched."
+                        "description": "The name of the external model to fetch field mappings for."
                     }
                 },
-                "required": ["model_name"]
+                "required": ["model"]
             }
         }
     },
     {
         "type": "function",
         "function": {
-            "name": "create_record",
-            "description": "Creates new records in the specified model. Supports creation of single or multiple records. This function handles authentication and then sends a request to the Odoo API to create the records.",
+            "name": "odoo_create_record",
+            "description": "Creates a new record in the specified external model through the Odoo API. This function first authenticates with the Odoo instance using global credentials and then sends a POST request to create a new record with the provided data.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "model_name": {
+                    "external_model": {
                         "type": "string",
-                        "description": "The technical name of the model."
+                        "description": "The name of the external model where the record will be created."
                     },
-                    "data": {
-                        "type": ["object", "array"],
-                        "items": {
-                            "type": "object"
-                        },
-                        "description": "A dictionary or list of dictionaries of field names and values to create the record(s)."
-                    },
-                    "print_pdf": {
-                        "type": "boolean",
-                        "description": "Whether to return a download link to the PDF of the created document. Defaults to False."
+                    "record_data": {
+                        "type": "object",
+                        "description": "A dictionary containing the data for the new record. The keys should correspond to field names in the external model."
                     }
                 },
-                "required": ["model_name", "data"]
+                "required": ["external_model", "record_data"]
             }
         }
     },
     {
         "type": "function",
         "function": {
-            "name": "fetch_records",
-            "description": "Fetches records from the specified model based on the given criteria. This function handles authentication and then sends a request to the Odoo API to retrieve the records. ",
+            "name": "odoo_fetch_records",
+            "description": "Retrieves records from an external model through the Odoo API. This function first authenticates with the Odoo instance using global credentials and then sends a request to fetch records based on optional filters.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "model_name": {
+                    "external_model": {
                         "type": "string",
-                        "description": "The technical name of the model."
+                        "description": "The name of the external model to fetch records from."
                     },
-                    "criteria": {
-                        "type": ["object", "array"],
+                    "filters": {
+                        "type": ["array", "null"],
                         "items": {
-                            "type": "object"
+                            "type": "array",
+                            "items": {
+                                "type": ["string", "number", "boolean", "null"]
+                            }
                         },
-                        "description": "A dictionary specifying the criteria for fetching records. Defaults to None."
-                    },
-                    "limit": {
-                        "type": "integer",
-                        "description": "Specifies how many records to fetch. Defaults to 20."
-                    },
-                    "fields_option": {
-                        "type": "string",
-                        "description": "Specifies verbosity of records fetched. Options are 'summary' to return only id and name fields and 'limited' to return fields specified in the limited_fields parameter. Defaults to 'summary'."
-                    },
-                    "limited_fields": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        },
-                        "description": "List of fields to fetch if fields_option is 'limited'. Defaults to None."
+                        "description": "Optional Odoo domain filters to narrow down the records to fetch. It is an array of arrays, where each sub-array consists of filter conditions. Defaults to None."
                     }
                 },
-                "required": ["model_name"]
+                "required": ["external_model"]
             }
         }
     },
     {
         "type": "function",
         "function": {
-            "name": "update_record",
+            "name": "odoo_update_record",
             "description": "Updates an existing record in the specified model. This function handles authentication and then sends a request to the Odoo API to update the record.",
             "parameters": {
                 "type": "object",
@@ -507,7 +492,7 @@ tools = [
     {
         "type": "function",
         "function": {
-            "name": "delete_records",
+            "name": "odoo_delete_record",
             "description": "Deletes records in the specified model based on criteria. This function handles authentication and then sends a request to the Odoo API to delete the records.",
             "parameters": {
                 "type": "object",
@@ -524,26 +509,50 @@ tools = [
                 "required": ["model_name", "criteria"]
             }
         }
-    },
+    },    
     {
         "type": "function",
         "function": {
-            "name": "print_record",
-            "description": "Prints the specified record (subject to the record being printable). This function handles authentication and then sends a request to the Odoo API to generate a PDF of the record.",
+            "name": "search_and_format_products",
+            "description": "Searches for products on Amazon via the Real-Time Amazon Data API and returns formatted results. The function handles API request parameters, makes the HTTP request to Amazon's search endpoint, and processes the response data into a readable format. It supports various filtering options including country selection, sorting preferences, product condition, Prime eligibility, and deals filtering. The function is particularly useful for e-commerce applications, price comparison tools, and product research, providing a convenient way to access structured Amazon product data programmatically.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "model_name": {
+                    "query": {
                         "type": "string",
-                        "description": "The technical name of the model."
+                        "description": "The search term to query Amazon with, such as product name, brand, or category."
                     },
-                    "record_id": {
+                    "country": {
+                        "type": "string",
+                        "description": "The Amazon marketplace country code (e.g., 'US', 'CA', 'UK'). Default is 'CA'."
+                    },
+                    "max_products": {
                         "type": "integer",
-                        "description": "The ID of the document to print."
+                        "description": "Maximum number of products to show in the formatted results. Default is 5."
+                    },
+                    "page": {
+                        "type": "integer",
+                        "description": "The page number of search results to retrieve. Default is 1."
+                    },
+                    "sort_by": {
+                        "type": "string",
+                        "description": "How to sort the results. Options include 'RELEVANCE', 'PRICE_LOW_TO_HIGH', 'PRICE_HIGH_TO_LOW', 'RATING', 'NEWEST'. Default is 'RELEVANCE'."
+                    },
+                    "product_condition": {
+                        "type": "string",
+                        "description": "Filter for product condition. Options include 'NEW', 'USED', 'REFURBISHED'. Default is 'NEW'."
+                    },
+                    "is_prime": {
+                        "type": "boolean",
+                        "description": "Filter for Amazon Prime eligible products. Default is False."
+                    },
+                    "deals_and_discounts": {
+                        "type": "string",
+                        "description": "Filter for deals and discounts. Options include 'NONE', 'TODAY_DEALS', 'ON_SALE'. Default is 'NONE'."
                     }
                 },
-                "required": ["model_name", "record_id"]
+                "required": ["query"]
             }
         }
-    }
+    }    
 ]

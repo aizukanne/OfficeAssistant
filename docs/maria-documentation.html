@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maria AI Assistant Documentation</title>
+    <style>
+        :root {
+            --primary-color: #4a6fa5;
+            --secondary-color: #6c757d;
+            --light-color: #f8f9fa;
+            --dark-color: #343a40;
+            --link-color: #0366d6;
+            --link-hover-color: #0056b3;
+            --code-bg: #f6f8fa;
+            --border-color: #e1e4e8;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--dark-color);
+            background-color: white;
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+        
+        .sidebar {
+            width: 280px;
+            background-color: var(--light-color);
+            padding: 2rem;
+            border-right: 1px solid var(--border-color);
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            overflow-y: auto;
+        }
+        
+        .sidebar h3 {
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+        }
+        
+        .sidebar ul {
+            list-style-type: none;
+        }
+        
+        .sidebar ul li {
+            margin-bottom: 0.5rem;
+        }
+        
+        .sidebar a {
+            color: var(--dark-color);
+            text-decoration: none;
+            display: block;
+            padding: 0.25rem 0;
+            transition: all 0.2s;
+        }
+        
+        .sidebar a:hover {
+            color: var(--primary-color);
+            padding-left: 0.25rem;
+        }
+        
+        .content {
+            margin-left: 280px;
+            padding: 2rem;
+            width: calc(100% - 280px);
+            max-width: 1000px;
+        }
+        
+        h1, h2, h3, h4, h5, h6 {
+            margin-top: 1.5rem;
+            margin-bottom: 1rem;
+            color: var(--dark-color);
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        h2 {
+            font-size: 2rem;
+            margin-top: 2.5rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+        }
+        
+        h3 {
+            font-size: 1.5rem;
+            margin-top: 2rem;
+            color: var(--primary-color);
+        }
+        
+        h4 {
+            font-size: 1.25rem;
+            margin-top: 1.5rem;
+        }
+        
+        p {
+            margin-bottom: 1rem;
+        }
+        
+        a {
+            color: var(--link-color);
+            text-decoration: none;
+        }
+        
+        a:hover {
+            color: var(--link-hover-color);
+            text-decoration: underline;
+        }
+        
+        pre {
+            background-color: var(--code-bg);
+            padding: 1rem;
+            border-radius: 5px;
+            margin-bottom: 1rem;
+            overflow-x: auto;
+        }
+        
+        code {
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+            font-size: 0.9em;
+            background-color: var(--code-bg);
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+        }
+        
+        pre code {
+            padding: 0;
+            background-color: transparent;
+        }
+        
+        .module-list {
+            list-style-type: none;
+            padding-left: 1rem;
+        }
+        
+        .module-list li {
+            margin-bottom: 1rem;
+        }
+        
+        .module-list li strong {
+            color: var(--primary-color);
+        }
+        
+        ul, ol {
+            padding-left: 2rem;
+            margin-bottom: 1rem;
+        }
+        
+        li {
+            margin-bottom: 0.5rem;
+        }
+        
+        blockquote {
+            border-left: 4px solid var(--secondary-color);
+            padding-left: 1rem;
+            margin-left: 0;
+            margin-bottom: 1rem;
+            color: var(--secondary-color);
+        }
+        
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 1rem;
+        }
+        
+        table, th, td {
+            border: 1px solid var(--border-color);
+        }
+        
+        th, td {
+            padding: 0.5rem;
+            text-align: left;
+        }
+        
+        th {
+            background-color: var(--light-color);
+        }
+        
+        .function-signature {
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        
+        .back-to-top {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background-color: var(--primary-color);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+        }
+        
+        .back-to-top:hover {
+            background-color: var(--link-hover-color);
+        }
+        
+        @media (max-width: 1024px) {
+            .sidebar {
+                width: 240px;
+            }
+            
+            .content {
+                margin-left: 240px;
+                width: calc(100% - 240px);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                position: relative;
+                padding: 1rem;
+                border-right: none;
+                border-bottom: 1px solid var(--border-color);
+            }
+            
+            .content {
+                margin-left: 0;
+                width: 100%;
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <aside class="sidebar">
+            <h3>Table of Contents</h3>
+            <ul>
+                <li><a href="#overview">Overview</a></li>
+                <li><a href="#system-architecture">System Architecture</a></li>
+                <li>
+                    <a href="#functionality">Functionality</a>
+                    <ul>
+                        <li><a href="#communication">Communication</a></li>
+                        <li><a href="#erp-integration">ERP Integration</a></li>
+                        <li><a href="#information-retrieval">Information Retrieval</a></li>
+                        <li><a href="#document-processing">Document Processing</a></li>
+                        <li><a href="#message-management">Message Management</a></li>
+                        <li><a href="#user-management">User Management</a></li>
+                    </ul>
+                </li>
+                <li>
+                    <a href="#function-descriptions">Function Descriptions</a>
+                    <ul>
+                        <li><a href="#lambda-function">Lambda Function</a></li>
+                        <li><a href="#conversation-management">Conversation Management</a></li>
+                        <li><a href="#storage-operations">Storage Operations</a></li>
+                        <li><a href="#slack-integration">Slack Integration</a></li>
+                        <li><a href="#media-processing">Media Processing</a></li>
+                        <li><a href="#erp-integrations">ERP Integrations</a></li>
+                        <li><a href="#external-services">External Services</a></li>
+                        <li><a href="#web-and-search">Web and Search</a></li>
+                        <li><a href="#document-management">Document Management</a></li>
+                    </ul>
+                </li>
+                <li><a href="#routing-configuration">Routing Configuration</a></li>
+                <li><a href="#prompt-configuration">Prompt Configuration</a></li>
+                <li><a href="#invocation-flow">Invocation Flow</a></li>
+                <li><a href="#configuration">Configuration</a></li>
+                <li><a href="#conclusion">Conclusion</a></li>
+            </ul>
+        </aside>
+
+        <main class="content">
+            <h1 id="overview">Maria: AI Executive Assistant Documentation</h1>
+
+            <p>Maria is an AI executive assistant designed to facilitate communication and task execution within a Slack workspace. Built on Claude 3.7 Sonnet, Maria presents herself as a friendly Canadian lady working at Cerenyi AI. The system integrates with various services including Slack, ERPNext, Amazon, Google APIs, and more to provide a wide range of functionalities.</p>
+
+            <h2 id="system-architecture">System Architecture</h2>
+
+            <p>The application consists of several interconnected modules:</p>
+
+            <h3>Core Modules</h3>
+
+            <ol class="module-list">
+                <li><strong>lambda_function.py</strong>: Main entry point that handles incoming events from Slack</li>
+                <li><strong>conversation.py</strong>: Manages conversation formatting and communication with OpenAI APIs</li>
+                <li><strong>storage.py</strong>: Handles data persistence in DynamoDB and Weaviate</li>
+                <li><strong>slack_integration.py</strong>: Manages interactions with the Slack API</li>
+                <li><strong>media_processing.py</strong>: Handles audio, image, and document processing</li>
+                <li><strong>nlp_utils.py</strong>: Provides natural language processing utilities</li>
+                <li><strong>extservices.py</strong>: Interfaces with external services (calendar, weather, etc.)</li>
+                <li><strong>tools.py</strong>: Defines the available tools and their parameters</li>
+                <li><strong>prompts.py</strong>: Contains system prompts and instructions for different scenarios</li>
+                <li><strong>config.py</strong>: Contains configuration parameters and API connections</li>
+                <li><strong>routes_layer.json</strong>: Defines routing logic based on user utterances</li>
+                <li><strong>erpnext_functions.py</strong>: Provides integration with ERPNext ERP system</li>
+                <li><strong>odoo_functions.py</strong>: Provides integration with Odoo ERP system</li>
+                <li><strong>amazon_functions.py</strong>: Provides integration with Amazon product search</li>
+            </ol>
+
+            <h2 id="functionality">Functionality</h2>
+
+            <h3 id="communication">1. Communication</h3>
+
+            <p>Maria can communicate through various channels:</p>
+
+            <h4>Text Communication</h4>
+            <ul>
+                <li>Respond to direct messages in Slack</li>
+                <li>Reply to mentions in channels</li>
+                <li>Support for thread replies</li>
+            </ul>
+
+            <h4>Audio Communication</h4>
+            <ul>
+                <li>Process incoming audio messages using transcription</li>
+                <li>Generate audio responses using text-to-speech</li>
+                <li>Upload audio responses to Slack</li>
+            </ul>
+
+            <h4>Visual Communication</h4>
+            <ul>
+                <li>Process and analyze images sent by users</li>
+                <li>Respond to messages with image content</li>
+                <li>Upload and share visual content</li>
+            </ul>
+
+            <h3 id="erp-integration">2. ERP Integration</h3>
+
+            <p>Maria provides access to ERP systems:</p>
+
+            <h4>ERPNext Integration</h4>
+            <ul>
+                <li>List available document types (<code>erpnext_list_doctypes</code>)</li>
+                <li>List fields for a document type (<code>erpnext_list_doctype_fields</code>)</li>
+                <li>Fetch documents based on criteria (<code>erpnext_get_documents</code>)</li>
+            </ul>
+
+            <h4>Odoo Integration</h4>
+            <ul>
+                <li>Get mapped models and their fields (<code>odoo_get_mapped_models</code>, <code>odoo_get_mapped_fields</code>)</li>
+                <li>Create, read, update, and delete records (<code>odoo_create_record</code>, <code>odoo_fetch_records</code>, <code>odoo_update_record</code>, <code>odoo_delete_record</code>)</li>
+            </ul>
+
+            <h3 id="information-retrieval">3. Information Retrieval</h3>
+
+            <p>Maria can fetch information from various sources:</p>
+
+            <h4>Web Search</h4>
+            <ul>
+                <li>Google search with advanced operators (<code>google_search</code>)</li>
+                <li>Retrieve and analyze content from websites (<code>browse_internet</code>)</li>
+                <li>Process and summarize web content</li>
+            </ul>
+
+            <h4>Weather Data</h4>
+            <ul>
+                <li>Get coordinates for a location (<code>get_coordinates</code>)</li>
+                <li>Retrieve weather data for a location (<code>get_weather_data</code>)</li>
+            </ul>
+
+            <h4>Product Search</h4>
+            <ul>
+                <li>Search for products on Amazon (<code>search_and_format_products</code>)</li>
+            </ul>
+
+            <h3 id="document-processing">4. Document Processing</h3>
+
+            <p>Maria can work with various document formats:</p>
+
+            <h4>File Operations</h4>
+            <ul>
+                <li>List files in S3 storage (<code>list_files</code>)</li>
+                <li>Download and read files from Slack</li>
+                <li>Convert content to PDF and share (<code>send_as_pdf</code>)</li>
+            </ul>
+
+            <h4>Document Analysis</h4>
+            <ul>
+                <li>Extract text from PDFs, Word documents, CSV files</li>
+                <li>Summarize document content</li>
+                <li>Upload documents to S3 for storage</li>
+            </ul>
+
+            <h3 id="message-management">5. Message Management</h3>
+
+            <p>Maria handles message routing and maintenance:</p>
+
+            <h4>Routing</h4>
+            <ul>
+                <li>Route messages based on context and content (<code>routes_layer.json</code>)</li>
+                <li>Invoke specific handlers based on message type</li>
+            </ul>
+
+            <h4>Message History</h4>
+            <ul>
+                <li>Save and retrieve message history (<code>save_message_weaviate</code>, <code>get_last_messages_weaviate</code>)</li>
+                <li>Find relevant past messages (<code>get_relevant_messages</code>)</li>
+                <li>Get specific messages by ID (<code>get_message_by_sort_id</code>, <code>get_messages_in_range</code>)</li>
+            </ul>
+
+            <h3 id="user-management">6. User Management</h3>
+
+            <p>Maria interacts with Slack users:</p>
+
+            <h4>User Operations</h4>
+            <ul>
+                <li>Get user details (<code>get_users</code>)</li>
+                <li>Send messages to specific users</li>
+                <li>Manage mute status (<code>manage_mute_status</code>)</li>
+            </ul>
+
+            <h4>Channel Operations</h4>
+            <ul>
+                <li>Get channel information (<code>get_channels</code>)</li>
+                <li>Send messages to channels</li>
+            </ul>
+
+            <h2 id="function-descriptions">Function Descriptions</h2>
+
+            <h3 id="lambda-function">Lambda Function (Main Entry Point)</h3>
+
+            <p>The <code>lambda_handler</code> in <code>lambda_function.py</code> is the main entry point that:</p>
+            <ol>
+                <li>Parses incoming Slack events</li>
+                <li>Retrieves message history</li>
+                <li>Processes any attached files or media</li>
+                <li>Routes the message to the appropriate handler</li>
+                <li>Generates and sends responses</li>
+            </ol>
+
+            <p>Key functions:</p>
+
+            <pre><code># Invocation: AWS Lambda trigger from Slack event
+def lambda_handler(event, context):
+    # Process Slack event, generate response, and invoke appropriate functions</code></pre>
+
+            <h3 id="conversation-management">Conversation Management</h3>
+
+            <p>In <code>conversation.py</code>, conversation formats are defined:</p>
+
+            <pre><code># Format a conversation with text only
+def make_text_conversation(system_text, assistant_text, display_name, msg_history_summary, all_messages, text)
+
+# Format a conversation with images
+def make_vision_conversation(system_text, assistant_text, display_name, all_relevant_messages, msg_history_summary, all_messages, text, image_urls=None)
+
+# Format a conversation with audio
+def make_audio_conversation(system_text, assistant_text, display_name, all_relevant_messages, msg_history_summary, all_messages, text, audio_urls=None)
+
+# Make API calls to OpenAI
+def make_openai_vision_call(client, conversations)
+def make_openai_audio_call(client, conversations)
+def ask_openai_o1(prompt)</code></pre>
+
+            <h3 id="storage-operations">Storage Operations</h3>
+
+            <p>In <code>storage.py</code>, database interactions are defined:</p>
+
+            <pre><code># Weaviate operations
+def save_message_weaviate(collection_name, chat_id, text, thread=None, image_urls=None)
+def get_last_messages_weaviate(collection_name, chat_id, num_messages)
+def get_relevant_messages(collection_name, chat_id, query_text, num_results)
+
+# DynamoDB operations
+def save_message(table, chat_id, text, role, thread=None, image_urls=None)
+def get_last_messages(table, chat_id, num_messages)
+def get_message_by_sort_id(role, chat_id, sort_id)
+def get_messages_in_range(chat_id, start_sort_id, end_sort_id)
+
+# User and channel management
+def get_users(user_id=None)
+def get_channels(id=None)
+def manage_mute_status(chat_id, status=None)</code></pre>
+
+            <h3 id="slack-integration">Slack Integration</h3>
+
+            <p>In <code>slack_integration.py</code>, Slack API interactions are defined:</p>
+
+            <pre><code># Message operations
+def send_slack_message(message, channel, ts=None)
+def send_audio_to_slack(text, chat_id=None, ts=None)
+def send_file_to_slack(file_path, chat_id, title, ts=None)
+
+# User and channel operations
+def update_slack_users()
+def update_slack_conversations()
+def get_slack_user_name(user_id)</code></pre>
+
+            <h3 id="media-processing">Media Processing</h3>
+
+            <p>In <code>media_processing.py</code>, multimedia operations are defined:</p>
+
+            <pre><code># Audio operations
+def text_to_speech(text, file_suffix=".mp3")
+def transcribe_speech_from_memory(audio_stream)
+def download_audio_to_memory(url)
+def process_url(url)
+def transcribe_multiple_urls(urls)
+def convert_to_wav_in_memory(m4a_data)
+
+# Image operations
+def upload_image_to_s3(image_url, bucket_name)</code></pre>
+
+            <h3 id="erp-integrations">ERP Integrations</h3>
+
+            <h4>ERPNext Functions</h4>
+
+            <p>In <code>erpnext_functions.py</code>, ERPNext operations are defined:</p>
+
+            <pre><code>def erpnext_get_documents(doc_type, document_name=None, fields=None, filters=None, limit_page_length=20, limit_start=0)
+def erpnext_list_doctypes()
+def erpnext_list_doctype_fields(doctype_name)</code></pre>
+
+            <h4>Odoo Functions</h4>
+
+            <p>In <code>odoo_functions.py</code>, Odoo operations are defined:</p>
+
+            <pre><code>def authenticate(odoo_url, odoo_db, odoo_login, odoo_password)
+def odoo_get_mapped_models(include_fields=True, model_name=None)
+def odoo_get_mapped_fields(model)
+def odoo_fetch_records(external_model, filters=None)
+def odoo_create_record(external_model, **kwargs)
+def odoo_update_record(external_model, record_id, **kwargs)
+def odoo_delete_record(external_model, record_id)</code></pre>
+
+            <h3 id="external-services">External Services</h3>
+
+            <p>In <code>extservices.py</code>, external service integrations are defined:</p>
+
+            <pre><code>def calendar_operations(access_token, calendar_id, operation, event_id=None, event_data=None)
+def exchange_auth_code_for_tokens(client_id, client_secret, authorization_code, redirect_uri)
+def get_coordinates(location_name)
+def get_weather_data(location_name='Whitehorse')</code></pre>
+
+            <h3 id="web-and-search">Web and Search</h3>
+
+            <p>In <code>lambda_function.py</code>, web interaction functions are defined:</p>
+
+            <pre><code>def google_search(search_term, before=None, after=None, intext=None, allintext=None, and_condition=None, must_have=None)
+def browse_internet(urls, full_text=False)
+async def get_web_pages(urls, full_text=False, max_concurrent_requests=5)</code></pre>
+
+            <h3 id="document-management">Document Management</h3>
+
+            <p>In <code>lambda_function.py</code>, document management functions are defined:</p>
+
+            <pre><code>def send_as_pdf(text, chat_id, title, ts=None)
+def list_files(folder_prefix='uploads')
+def download_and_read_file(url, content_type)</code></pre>
+
+            <h2 id="routing-configuration">Routing Configuration</h2>
+
+            <p>The <code>routes_layer.json</code> file defines routing patterns for different types of user inquiries:</p>
+
+            <ol>
+                <li><strong>chitchat</strong>: Casual conversation handling</li>
+                <li><strong>research</strong>: Information retrieval inquiries</li>
+                <li><strong>writing</strong>: Content generation requests</li>
+                <li><strong>numerical_analysis</strong>: Computational and data analysis requests</li>
+                <li><strong>navigation</strong>: Location and direction-related inquiries</li>
+                <li><strong>odoo_erp</strong>: ERP-related queries and operations</li>
+            </ol>
+
+            <h2 id="prompt-configuration">Prompt Configuration</h2>
+
+            <p>The <code>prompts.py</code> file contains different instruction sets for various scenarios:</p>
+
+            <ol>
+                <li><strong>system_text</strong>: Primary system instructions</li>
+                <li><strong>assistant_text</strong>: Basic assistant persona and guidelines</li>
+                <li><strong>speech_instruction</strong>: Guidelines for generating natural speech</li>
+                <li><strong>instruct_basic</strong>: Basic conversation instructions</li>
+                <li><strong>odoo_search</strong>: ERP search instructions</li>
+                <li><strong>instruct_Problem_Solving</strong>: Problem-solving approach</li>
+                <li><strong>instruct_Context_Clarification</strong>: Context gathering guidelines</li>
+                <li><strong>instruct_chain_of_thought</strong>: Reasoning guidelines</li>
+                <li><strong>instruct_research</strong>: Research methodology</li>
+                <li><strong>instruct_writing</strong>: Writing style guidelines</li>
+                <li><strong>email_instructions</strong>: Email handling guidelines</li>
+            </ol>
+
+            <h2 id="invocation-flow">Invocation Flow</h2>
+
+            <ol>
+                <li>
+                    <strong>Initial Trigger</strong>:
+                    <ul>
+                        <li>Slack event (message, mention) is sent to the AWS Lambda function</li>
+                    </ul>
+                </li>
+                <li>
+                    <strong>Event Processing</strong>:
+                    <ul>
+                        <li>Lambda extracts user, channel, and message information</li>
+                        <li>Processes any attached media (images, audio, documents)</li>
+                    </ul>
+                </li>
+                <li>
+                    <strong>Message Routing</strong>:
+                    <ul>
+                        <li>Message is categorized using the semantic router</li>
+                        <li>Appropriate system prompts are selected</li>
+                    </ul>
+                </li>
+                <li>
+                    <strong>Context Building</strong>:
+                    <ul>
+                        <li>Relevant conversation history is retrieved</li>
+                        <li>Related messages are found</li>
+                    </ul>
+                </li>
+                <li>
+                    <strong>Response Generation</strong>:
+                    <ul>
+                        <li>Conversation is formatted and sent to OpenAI</li>
+                        <li>Response is received and processed</li>
+                    </ul>
+                </li>
+                <li>
+                    <strong>Tool Execution</strong>:
+                    <ul>
+                        <li>If tools are called, they are executed in parallel</li>
+                        <li>Results are incorporated into the conversation</li>
+                    </ul>
+                </li>
+                <li>
+                    <strong>Response Delivery</strong>:
+                    <ul>
+                        <li>Final response is formatted and sent to Slack</li>
+                        <li>Message is saved to the database for future reference</li>
+                    </ul>
+                </li>
+            </ol>
+
+            <h2 id="configuration">Configuration</h2>
+
+            <p>The <code>config.py</code> file contains environment variables and service connections:</p>
+
+            <ol>
+                <li><strong>API Keys</strong>: Various service API keys</li>
+                <li><strong>Database Connections</strong>: DynamoDB and Weaviate configurations</li>
+                <li><strong>Proxy Settings</strong>: Web proxy configuration</li>
+                <li><strong>User Agents</strong>: List of user agents for web requests</li>
+                <li><strong>Service URLs</strong>: Endpoints for various services</li>
+            </ol>
+
+            <h2 id="conclusion">Conclusion</h2>
+
+            <p>Maria is a comprehensive AI assistant solution that integrates with various services to provide a wide range of functionalities. The modular design allows for easy maintenance and extension, while the robust conversation handling ensures natural interactions with users.</p>
+
+            <p>The system's ability to process and generate text, audio, and images, combined with its integration with ERP systems, web search, and document processing, makes it a versatile tool for enterprise environments.</p>
+
+            <a href="#" class="back-to-top">↑</a>
+        </main>
+    </div>
+
+    <script>
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+        
+        // Show/hide back to top button based on scroll position
+        window.addEventListener('scroll', function() {
+            const backToTopButton = document.querySelector('.back-to-top');
+            if (window.pageYOffset > 300) {
+                backToTopButton.style.display = 'flex';
+            } else {
+                backToTopButton.style.display = 'none';
+            }
+        });
+        
+        // Initialize - hide back to top button initially
+        document.querySelector('.back-to-top').style.display = 'none';
+    </script>
+</body>
+</html>

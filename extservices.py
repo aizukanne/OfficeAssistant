@@ -2,7 +2,6 @@ import os
 import json
 import nltk
 import requests
-import wolframalpha
 
 
 from nltk.tokenize import sent_tokenize, word_tokenize
@@ -140,79 +139,4 @@ def get_weather_data(location_name='Whitehorse'):
         return f'Failed to get weather data: {response.reason}'
 
     return response.json()
-
-    
-'''
-def solve_math_problem(problem):
-    wolframalpha_app_id = os.getenv('WOLFRAM_ALPHA_APP_ID')
-    app_id = wolframalpha_app_id  # Replace with your Wolfram Alpha App ID 
-    client = wolframalpha.Client(app_id)
-    try:
-        res = client.query(problem)
-        print(res.json())
-        return next(res.results, "No result found").text if res.results else "No result found"
-    except Exception as e:
-        return f"Error: {e}"
-
-'''
-
-def solve_math_problem(problem):
-    wolframalpha_app_id = os.getenv('WOLFRAM_ALPHA_APP_ID')
-    
-    if not wolframalpha_app_id:
-        return "Error: Wolfram Alpha App ID is not set in the environment variables."
-    
-    client = wolframalpha.Client(wolframalpha_app_id)
-    
-    try:
-        res = client.query(problem)
-        
-        # Convert response to dictionary for processing
-        res_dict = json.loads(json.dumps(res))
-        
-        if res_dict.get('@success') == "false":
-            did_you_means = res_dict.get('didyoumeans', {})
-            return {
-                "status": "No result found",
-                "didyoumeans": did_you_means
-            }
-        
-        result_pods = res_dict.get('pod', [])
-        if not result_pods:
-            return {"status": "No result found"}
-
-        # Extract relevant information
-        input_string = res_dict.get('@inputstring', "")
-        solutions = []
-        alternate_forms = []
-        sum_of_roots = ""
-        product_of_roots = ""
-
-        for pod in result_pods:
-            title = pod.get('@title', "")
-            if title == "Solutions":
-                solutions = [subpod.get('plaintext', "") for subpod in pod.get('subpod', [])]
-            elif title == "Alternate forms":
-                alternate_forms = [subpod.get('plaintext', "") for subpod in pod.get('subpod', [])]
-            elif title == "Sum of roots":
-                sum_of_roots = pod.get('subpod', {}).get('plaintext', "")
-            elif title == "Product of roots":
-                product_of_roots = pod.get('subpod', {}).get('plaintext', "")
-
-        return {
-            "input_string": input_string,
-            "solutions": solutions,
-            "alternate_forms": alternate_forms,
-            "sum_of_roots": sum_of_roots,
-            "product_of_roots": product_of_roots
-        }
-    
-    except Exception as e:
-        error_message = f"Unexpected error: {str(e)}"
-        print(error_message)
-        return {"status": "error", "error_message": error_message}
-        
-        
-        
-        
 
