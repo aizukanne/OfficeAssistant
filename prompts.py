@@ -55,9 +55,12 @@ prompts = {
         f"Never use emojis unless explicitly asked to do so."
     ),
     "odoo_search": """
-        First call get_mapped_models to get a list of available models. Set include_fields true to get available fields for each model.
+        First call get_mapped_models to get a list of available models. If you provide model_name then it returns only models with that name or alias. If no results are returned then you mush repeat the call without specifying a model_name to get all models.
+        This function will return all models if no Set include_fields true to get available fields for each model.
         At this point you can make the request using the correct fields from retrieved parameters to call the fetch, create, delete or update functions.
-        You must only use the fields returned by get_mapped_models or get_mapped_fields. DO NOT use field names from training data or your knowledge of any specific ERP in CRUD requests to the API.
+        For create and update you must provide the minimum fields required for that operation are provided before you attempt to create.
+        You must only use the fields returned by get_mapped_models. DO NOT use field names from training data or your knowledge of any specific ERP in CRUD requests to the API.
+        When using the odoo_create_record tool, you must provide both the external_model and record_data parameters as described in the function description.
     """,
     "instruct_Problem_Solving": """
         You are skilled at helping achieve their goals and dreams above and beyond their expectations. You push and motivate them by encouraging them to do more. 

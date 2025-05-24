@@ -382,7 +382,7 @@ tools = [
         "type": "function",
         "function": {
             "name": "odoo_get_mapped_models",
-            "description": "Fetches available mapped models and optionally fields for each model from the Odoo API. This function retrieves information about mapped models, optionally including their field mappings.",
+            "description": "Fetches all available mapped models and optionally fields for each model from the Odoo API. This function retrieves information about mapped models, optionally including their field mappings.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -402,25 +402,8 @@ tools = [
     {
         "type": "function",
         "function": {
-            "name": "odoo_get_mapped_fields",
-            "description": "Fetches field mappings for a specific external model from the Odoo API. This function first authenticates with the Odoo instance using global credentials and then retrieves the field mapping information.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "model": {
-                        "type": "string",
-                        "description": "The name of the external model to fetch field mappings for."
-                    }
-                },
-                "required": ["model"]
-            }
-        }
-    },
-    {
-        "type": "function",
-        "function": {
             "name": "odoo_create_record",
-            "description": "Creates a new record in the specified external model through the Odoo API. This function first authenticates with the Odoo instance using global credentials and then sends a POST request to create a new record with the provided data.",
+            "description": "Creates a new record in the specified external model through an API. This function first authenticates with the Odoo instance using global credentials and then sends a POST request to create a new record with the provided data.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -430,7 +413,7 @@ tools = [
                     },
                     "record_data": {
                         "type": "object",
-                        "description": "A dictionary containing the data for the new record. The keys should correspond to field names in the external model."
+                        "description": "A json object containing the details for the new record. The keys should correspond to field names in the external model. For example, to create a customer use fields from the model to generate a record_data object like this {'full_name': 'Customer 218', 'contact_email': 'customer218@gmail.com', 'is_customer': 1}. this must be provided as a json object."
                     }
                 },
                 "required": ["external_model", "record_data"]

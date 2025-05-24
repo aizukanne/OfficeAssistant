@@ -1,6 +1,10 @@
+import boto3
+import json
 import re
+
 from nltk.tokenize import sent_tokenize, word_tokenize
 
+client = boto3.client('lambda')
 
 def load_stopwords(file_path):
     """
@@ -87,3 +91,24 @@ def clean_website_data(raw_text):
 
     except Exception as e:
         return json.dumps({"error": f"Error processing text: {str(e)}"})
+
+
+def detect_pii(payload):
+    try:
+        response = client.invoke(
+            FunctionName='ner-lambda',
+            InvocationType='RequestResponse',
+            Payload=json.dumps(payload),
+        )
+        
+        # Check for Lambda execution errors
+        if 'FunctionError' in response:
+            print(f"Lambda execution error: {repr(response.get('FunctionError'))}")
+            return payload
+            
+        result = json.load(response['Payload'])
+        return result
+    except Exception as e:
+        # Log the error but return the original payload
+        print(f"Error invoking Lambda: {repr(e)}")
+        return payload

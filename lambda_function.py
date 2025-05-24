@@ -85,7 +85,7 @@ from conversation import (
 
 from nlp_utils import (
     load_stopwords, rank_sentences, summarize_record, summarize_messages,
-    clean_website_data
+    clean_website_data, detect_pii
 )
 
 nltk.data.path.append("/opt/python/nltk_data")
@@ -150,6 +150,8 @@ def lambda_handler(event, context):
     else:
         body_str = event.get('body', '{}')
         print(f"Body: {body_str}")
+
+        enable_pii = False
     
         # Parse the incoming event from Slack          
         slack_event = json.loads(event['body'])
@@ -209,6 +211,35 @@ def lambda_handler(event, context):
         audio_urls = []
         speech_instruction = prompts['speech_instruction']
 
+
+        try:
+            route_name = ""
+            if text:
+                # Try to get the route choice
+                try:
+                    route_choice = rl(text)
+                    print(f'Route Choice: {route_choice}')
+                    route_name = route_choice.name
+                except ValueError as e:
+                    # Handle the specific error for context length exceeded
+                    if "maximum context length" in str(e):
+                        print(f"Warning: Text exceeds maximum context length. Using fallback routing. Error: {e}")
+                        # Implement a fallback strategy - options:
+                        # 1. Truncate the text to fit within limits
+                        # 2. Use a default route
+                        # 3. Split the text and process in chunks
+                        
+                        # Example of fallback to default route:
+                        route_name = "default_route"  # Replace with your fallback route
+                    else:
+                        # Re-raise if it's a different ValueError
+                        raise
+        except Exception as e:
+            # Catch any other exceptions that might occur
+            print(f"Error in routing: {e}")
+            # Set a default route or handle the error appropriately
+            route_name = "unknown_route"  # Replace with appropriate error handling
+
         # Check for audio in message     
         try:
             for file in slack_event["event"]["files"]:
@@ -266,12 +297,6 @@ def lambda_handler(event, context):
         text += " " + " ".join(audio_text) if audio_text else ""
         text += " " + json.dumps(application_files) if application_files else ""
 
-        route_name = ""
-        if text:
-            route_choice = rl(text)
-            print(f'Route Choice: {route_choice}')
-            route_name = route_choice.name
-
         # Retrieve the last N messages from the user and assistant     
         if route_name == 'chitchat':
             summary_len = 0
@@ -285,14 +310,14 @@ def lambda_handler(event, context):
             full_text_len = 5 
         elif route_name == 'odoo_erp':
             system_text = prompts['system_text']
-            assistant_text = prompts['assistant_text'] + " " + prompts['odoo_search']
+            assistant_text = prompts['assistant_text'] + " " + prompts['odoo_search'] + " " + prompts['instruct_Context_Clarification']
             summary_len = 2
             full_text_len = 5
             relevant = 0
             ai_temperature = 0.1   
         else:
             system_text = prompts['system_text']
-            assistant_text = prompts['assistant_text'] + " " + prompts['odoo_search']
+            assistant_text = prompts['assistant_text'] + " " + prompts['odoo_search'] + " " + prompts['instruct_Context_Clarification'] + " " + prompts['instruct_chain_of_thought']
             summary_len = 10
             full_text_len = 5
 
@@ -345,6 +370,9 @@ def lambda_handler(event, context):
         # Check if image_urls exists
         has_image_urls, all_image_urls = find_image_urls(all_messages)
 
+        if enable_pii:
+            text = detect_pii(text)
+
         if has_audio:
             # Use audio conversation for audio inputs
             conversation = make_audio_conversation(system_text, assistant_text, display_name, 
@@ -385,7 +413,7 @@ def lambda_handler(event, context):
         "list_files": list_files,
         "solve_maths": solve_maths,
         "odoo_get_mapped_models": odoo_get_mapped_models,
-        "odoo_get_mapped_fields": odoo_get_mapped_fields,
+        #"odoo_get_mapped_fields": odoo_get_mapped_fields,
         "odoo_create_record": odoo_create_record,
         "odoo_fetch_records": odoo_fetch_records,
         "odoo_update_record": odoo_update_record,
@@ -428,7 +456,6 @@ def lambda_handler(event, context):
         else:
             weaviate_client.close()
             break  # Exit the loop if there are no tool calls
-
 
 
 # Function to convert non-serializable types for JSON serialization  
@@ -713,7 +740,6 @@ async def process_page(session, url, semaphore, full_text=False):
 
         return response_list
 
-
 def upload_document_to_s3(document_content, content_type, document_url):
     document_extension = mimetypes.guess_extension(content_type) or '.bin'
     s3_object_name = f"Document_{datetime.datetime.now(datetime.UTC).strftime('%Y%m%d%H%M%S')}{document_extension}"
@@ -898,52 +924,45 @@ def replace_problematic_chars(text):
 
 def send_as_pdf(text, chat_id, title, ts=None):
     """
-    Converts formatted text to PDF and uploads it to a Slack channel.  
-
-    Parameters:
-    - text: The text to be converted, may contain Markdown formatting.
-    - chat_id: The ID of the Slack channel where the file will be uploaded.
-    - title: The title of the file.
-    - ts: The thread timestamp (optional).  
+    Converts formatted text to PDF and uploads it to a Slack channel.
+    Returns a clear status string after execution.
     """
+    pdf_path = f"/tmp/{title}.pdf"
     try:
-        # Create a PDF object
+        # Use a Unicode-supporting font
         pdf = MyFPDF(title)
         pdf.add_page()
-        pdf.set_font('Arial', '', 11)
+        # Register and use a Unicode font (e.g., DejaVu)
+        pdf.add_font('DejaVu', '', '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', uni=True)
+        pdf.set_font('DejaVu', '', 11)
 
-        # Convert Markdown to HTML using markdown2
-        text = text.replace("\\n\\n", "\\n")
+        # Convert Markdown to HTML
+        text = text.replace("\n\n", "\n")
         html_content = markdown2.markdown(text)
-
-        # Replace problematic characters
         html_content = replace_problematic_chars(html_content)
-
-        # Write HTML content to PDF
         pdf.write_html(html_content)
 
-        # Save the PDF to a file in the /tmp directory
-        pdf_path = f"/tmp/{title}.pdf"
-        pdf.output(pdf_path)
+        pdf.output(pdf_path, 'F')
 
-        # Define the S3 bucket and folder where the file will be saved
+        # Upload to S3
         bucket_name = docs_bucket_name
         folder_name = 'uploads'
-
-        # Upload the file to S3 with the original file name  
         file_key = f"{folder_name}/{title}.pdf"
         s3_client = boto3.client('s3')
         s3_client.upload_file(pdf_path, bucket_name, file_key)
 
-        # Upload the PDF to Slack
+        # Upload to Slack
         send_file_to_slack(pdf_path, chat_id, title, ts)
+        status = "Success: PDF sent to Slack and uploaded to S3."
 
     except Exception as e:
-        print(f"An error occurred: {e}")
+        status = f"Failure: {e}"
+
     finally:
-        # Clean up the temporary PDF file 
+        # Clean up
         if os.path.exists(pdf_path):
             os.remove(pdf_path)
+    return status
     
 
 def list_files(folder_prefix='uploads'):

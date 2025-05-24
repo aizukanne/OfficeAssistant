@@ -82,7 +82,7 @@ def odoo_get_mapped_models(include_fields=True, model_name=None):
         params['model_name'] = model_name
     payload['params'] = params
     try: 
-        print(json.dumps(payload, indent=2))
+        print(json.dumps(payload))
         response = requests.post(endpoint, headers=headers, json=payload)
         response.raise_for_status()
         return response.json()
@@ -167,33 +167,36 @@ def odoo_fetch_records(external_model, filters=None):
         return {'error': f'Other error occurred: {err}'}
 
 
-def odoo_create_record(external_model, **kwargs):
+def odoo_create_record(external_model, record_data):
     """
     Creates a new record.
     Args:
-    - external_model (str): External model name.
-    - **kwargs: Variable keyword arguments that will be combined into record_data.
-    
+        external_model (str): External model name.
+        record_data (dict): Data for the record to be created.
     Returns:
-    - dict: Response containing the created record.
+        dict: Response containing the created record or error.
     """
+    # Check for missing parameters
+    if not external_model:
+        return {'error': "Missing required parameter: 'external_model'."}
+    if not record_data:
+        return {'error': "Missing required parameter: 'record_data'."}
+    if not isinstance(record_data, dict):
+        return {'error': "'record_data' must be a dictionary."}
+    
     # Authenticate first
     auth_result = authenticate(odoo_url, odoo_db, odoo_login, odoo_password)
     if 'error' in auth_result:
         return auth_result
-    
     session_id = auth_result['session_id']
     endpoint = f"{base_url}/api/{external_model}/create"
     headers = {
         'Content-Type': 'application/json',
         'Cookie': f'session_id={session_id}'
     }
-    
-    # Using kwargs directly as the record_data
-    record_data = kwargs
-    
+    payload = {'params': record_data}
     try:
-        response = requests.post(endpoint, headers=headers, json=record_data)
+        response = requests.post(endpoint, headers=headers, json=payload)
         response.raise_for_status()
         return response.json()
     except requests.exceptions.HTTPError as http_err:
