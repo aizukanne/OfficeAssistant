@@ -53,22 +53,15 @@ from weaviate.classes.query import Filter
 from weaviate.classes.query import Sort
 from xml.etree import ElementTree
 
+from config import *  # Import all configuration variables
 from extservices import get_coordinates
 from extservices import get_weather_data
-
 from nltk.tokenize import sent_tokenize, word_tokenize
-from config import *  # Import all configuration variables
-from storage import (
-    save_message_weaviate, get_last_messages_weaviate, 
-    get_relevant_messages, save_message, get_last_messages,
-    get_message_by_sort_id, get_messages_in_range, get_users, 
-    get_channels, manage_mute_status, decimal_default
-)
 
-from slack_integration import (
-    send_slack_message, send_audio_to_slack, send_file_to_slack,
-    get_slack_user_name, update_slack_users, update_slack_conversations,
-    find_image_urls, latex_to_slack, message_to_json
+from conversation import (
+    make_text_conversation, make_vision_conversation, make_audio_conversation,
+    make_openai_vision_call, make_openai_audio_call, ask_openai_o1,
+    serialize_chat_completion_message, handle_message_content, handle_tool_calls
 )
 
 from media_processing import (
@@ -77,15 +70,26 @@ from media_processing import (
     convert_to_wav_in_memory
 )
 
-from conversation import (
-    make_text_conversation, make_vision_conversation, make_audio_conversation,
-    make_openai_vision_call, make_openai_audio_call, ask_openai_o1,
-    serialize_chat_completion_message, handle_message_content, handle_tool_calls
-)
-
 from nlp_utils import (
     load_stopwords, rank_sentences, summarize_record, summarize_messages,
     clean_website_data, detect_pii
+)
+
+from slack_integration import (
+    send_slack_message, send_audio_to_slack, send_file_to_slack,
+    get_slack_user_name, update_slack_users, update_slack_conversations,
+    find_image_urls, latex_to_slack, message_to_json, process_slack_event
+)
+
+from storage import (
+    save_message_weaviate, get_last_messages_weaviate, 
+    get_relevant_messages, save_message, get_last_messages,
+    get_message_by_sort_id, get_messages_in_range, get_users, 
+    get_channels, manage_mute_status
+)
+
+from telegram_integration import (
+    process_telegram_event
 )
 
 nltk.data.path.append("/opt/python/nltk_data")
@@ -100,9 +104,8 @@ weaviate_client = weaviate.connect_to_weaviate_cloud(
     headers = headers
 )
 
-
 def lambda_handler(event, context):
-    print(f"Event: {event}")   
+    print(f"Event: {event}") 
     
     global stopwords
     global chat_id
@@ -110,6 +113,7 @@ def lambda_handler(event, context):
     global thread_ts
     global audio_text
     global conversation
+    global source
 
     stopwords = load_stopwords('english')
     has_image = ''
@@ -150,152 +154,62 @@ def lambda_handler(event, context):
     else:
         body_str = event.get('body', '{}')
         print(f"Body: {body_str}")
-
+        
         enable_pii = False
-    
-        # Parse the incoming event from Slack          
-        slack_event = json.loads(event['body'])
-        event_type = slack_event['event']['type']
-        #print(event_type)
-          
-        #Initialize global variables        
-        chat_id = slack_event['event']['channel']
-        #print(f"Chat Id: {chat_id}")
         
-        thread_ts = slack_event['event'].get('thread_ts', slack_event['event']['ts'])
-    
-        # Check if the 'user' key exists and has a value 
-        if 'user' in slack_event['event'] and slack_event['event']['user']:
-            user_id = slack_event['event']['user']
+        # Parse the incoming event
+        parsed_body = json.loads(body_str)
+        
+        # Detect source and process accordingly
+        source = event.get('source', 'slack')  # Default to slack for backward compatibility
+        
+        if source == 'telegram':
+            print("Processing Telegram event")
+            processed_data = process_telegram_event(parsed_body)
         else:
-            # Stop execution if no user ID is found 
-            print("No user ID found. Stopping execution.")
+            # Default to Slack processing (for backward compatibility)
+            print("Processing Slack event")
+            processed_data = process_slack_event(parsed_body)
+        
+        # Check if processing was successful
+        if processed_data is None:
+            print("Event processing failed or should be ignored")
             return {
-               'statusCode': 200,
-               'body': json.dumps({'message': 'Ignored message.'})
-            } # or use 'exit()' or 'sys.exit()' depending on the context  
-    
+                'statusCode': 200,
+                'body': json.dumps({'message': 'Ignored message.'})
+            }
         
-        # Ignore messages from the bot itself  
-        if 'event' in slack_event and 'bot_id' in slack_event['event']:
-               return {
-                   'statusCode': 200,
-                   'body': json.dumps({'message': 'Ignored message from bot'})
-               }
+        # Extract processed parameters
+        chat_id = processed_data['chat_id']
+        user_id = processed_data['user_id']
+        user_name = processed_data['user_name']
+        display_name = processed_data['display_name']
+        text = processed_data['text']
+        thread_ts = processed_data['thread_ts']
+        image_urls = processed_data['image_urls']
+        audio_urls = processed_data['audio_urls']
+        audio_text = processed_data['audio_text']
+        application_files = processed_data['application_files']
+        event_type = processed_data['event_type']
         
-        # Retrieve the name of the user         
-        user = get_users(user_id)
-        user_name = user['real_name']
-        display_name = user['display_name']
-        display_name = display_name.replace(' ', '_').replace('.', '').strip()
+        print(f"Processed {source} event - Chat ID: {chat_id}, User: {user_name}, Text: {text[:50]}...")
         
-        try:
-            text = slack_event['event']['text']
-        except KeyError:
-            print(f"An error occured. No text found. slack_event: {json.dumps(slack_event)}") # Handle the error, e.g., log it and set a default value for text
-            text = ""
-        
-        #Check for image in message 
-        try:
-            for file in slack_event["event"]["files"]:
-                if file["mimetype"].startswith("image/"):
-                    image_url = file["url_private"]
-                    uploaded_url = upload_image_to_s3(image_url, image_bucket_name)
-                    image_urls.append(uploaded_url)
-                    
-            #print(json.dumps(image_urls))
-        except KeyError:
-            image_urls = None    
-    
-
-        audio_urls = []
-        speech_instruction = prompts['speech_instruction']
-
-
-        try:
-            route_name = ""
-            if text:
-                # Try to get the route choice
-                try:
-                    route_choice = rl(text)
-                    print(f'Route Choice: {route_choice}')
-                    route_name = route_choice.name
-                except ValueError as e:
-                    # Handle the specific error for context length exceeded
-                    if "maximum context length" in str(e):
-                        print(f"Warning: Text exceeds maximum context length. Using fallback routing. Error: {e}")
-                        # Implement a fallback strategy - options:
-                        # 1. Truncate the text to fit within limits
-                        # 2. Use a default route
-                        # 3. Split the text and process in chunks
-                        
-                        # Example of fallback to default route:
-                        route_name = "default_route"  # Replace with your fallback route
-                    else:
-                        # Re-raise if it's a different ValueError
-                        raise
-        except Exception as e:
-            # Catch any other exceptions that might occur
-            print(f"Error in routing: {e}")
-            # Set a default route or handle the error appropriately
-            route_name = "unknown_route"  # Replace with appropriate error handling
-
-        # Check for audio in message     
-        try:
-            for file in slack_event["event"]["files"]:
-                if file["mimetype"].startswith(("audio/", "video/")):
-                    audio_url = file["url_private"]
-                    audio_urls.append(audio_url)
-
-            print(json.dumps(audio_urls))
-            
-            audio_text = transcribe_multiple_urls(audio_urls)
-            #Check if audio_text is not empty  
-            if audio_text:
-                # Append speech_instruction to audio_text where audio_text is a list and speech_instruction is a string
-                audio_text.append(speech_instruction)
-                # Convert the array to a string with spaces in between each element
-                combined_text = ' '.join(audio_text)
-            print(f"Audio Msgs: {audio_text}")
-            #has_audio = len(audio_urls) > 0
-            
-        except KeyError:
-            audio_urls = None
-       
-        size_limit_mb = 5  # Set the file size limit in MB
-    
-        # Check for documents in message
-        try:
-            application_files = []
-            for file in slack_event["event"]["files"]:
-                if file["mimetype"].startswith("application/") or file["mimetype"].startswith("text/"):
-                    file_url = file["url_private"]
-                    file_name = file.get("name", "Unnamed File")
-                    #print(f"Mime Type: {file['mimetype']}")
-                    file_size_mb = file.get("size", 1) / (1024 * 1024)
-                    if file_size_mb > size_limit_mb:
-                        application_files.append({"file_name": file_name, "content": f"File {file_name} is over the {size_limit_mb} MB limit. URL: {file_url}"})
-                    else:
-                        file_content = download_and_read_file(file_url, file["mimetype"])
-                        application_files.append({"Message": "The user sent a file with this message. The contents of the file have been appended to this message.", "Filename": file_name, "content": file_content})
-        
-            print(json.dumps(application_files))   
-        except KeyError:
-            application_files = None
-    
-        # Check if there are attachments in the incoming message       
-        if 'attachments' in slack_event['event']:
-            attachments = slack_event['event']['attachments']
-            
-            # Extract content from attachments and append it to the text       
-            for attachment in attachments:
-                if 'text' in attachment:
-                    forwarded_message_text = attachment['text']
-                    # Append the forwarded message text along with a notice. 
-                    text += f"\n\nForwarded Message:\n{forwarded_message_text}"
-                    
-        text += " " + " ".join(audio_text) if audio_text else ""
-        text += " " + json.dumps(application_files) if application_files else ""
+        # Get route (common processing)
+        route_name = ""
+        if text:
+            try:
+                route_choice = rl(text)
+                print(f'Route Choice: {route_choice}')
+                route_name = route_choice.name
+            except ValueError as e:
+                if "maximum context length" in str(e):
+                    print(f"Warning: Text exceeds maximum context length. Using fallback routing. Error: {e}")
+                    route_name = "chitchat"
+                else:
+                    raise
+            except Exception as e:
+                print(f"Error in routing: {e}")
+                route_name = "unknown_route"
 
         # Retrieve the last N messages from the user and assistant     
         if route_name == 'chitchat':
@@ -356,7 +270,7 @@ def lambda_handler(event, context):
         
         try:
             maria_muted = manage_mute_status(chat_id)[0]
-            match_id = re.search(r"<@(\w+)>", slack_event['event']['text'])
+            match_id = re.search(r"<@(\w+)>", text)
             mentioned_user_id = match_id.group(1) if match_id else None
             print(f"Maria muted: {maria_muted}")
             # Check if Maria is muted and the mentioned user is not the specified ID
@@ -456,7 +370,6 @@ def lambda_handler(event, context):
         else:
             weaviate_client.close()
             break  # Exit the loop if there are no tool calls
-
 
 # Function to convert non-serializable types for JSON serialization  
 def decimal_default(obj):

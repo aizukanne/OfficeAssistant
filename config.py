@@ -13,6 +13,7 @@ erpnext_api_key = os.getenv('ERPNEXT_API_KEY')
 erpnext_api_secret = os.getenv('ERPNEXT_API_SECRET') 
 openai_api_key = os.getenv('OPENAI_API_KEY')
 slack_bot_token = os.getenv('SLACK_BOT_TOKEN')
+telegram_bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
 weaviate_api_key = os.getenv('WEAVIATE_API_KEY')
 weaviate_url = os.getenv('WEAVIATE_URL')
 

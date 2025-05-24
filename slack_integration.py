@@ -8,6 +8,10 @@ from bs4 import BeautifulSoup
 from urllib.parse import urlparse, unquote
 from config import slack_bot_token, names_table, channels_table
 
+from storage import (
+    get_users, get_channels
+)
+
 def convert_markdown_to_slack(content):
     # Convert bold text
     content = re.sub(r"\*\*(.*?)\*\*", r"*\1*", content)
@@ -571,3 +575,123 @@ def find_image_urls(data):
     # Return True if the list is not empty (indicating that at least one URL was found),
     # and the list of all found image URLs
     return bool(image_urls), image_urls
+
+
+def process_slack_event(slack_event):
+    """Process Slack event and return standardized parameters"""
+    try:
+        event_data = slack_event['event']
+        event_type = event_data['type']
+        
+        # Initialize return parameters
+        chat_id = event_data['channel']
+        thread_ts = event_data.get('thread_ts', event_data['ts'])
+        
+        # Check if the 'user' key exists and has a value 
+        if 'user' in event_data and event_data['user']:
+            user_id = event_data['user']
+        else:
+            # Return None to indicate this should be ignored
+            return None
+        
+        # Ignore messages from the bot itself  
+        if 'bot_id' in event_data:
+            return None
+        
+        # Retrieve the name of the user         
+        user = get_users(user_id)
+        user_name = user['real_name']
+        display_name = user['display_name']
+        display_name = display_name.replace(' ', '_').replace('.', '').strip()
+        
+        # Get message text
+        try:
+            text = event_data['text']
+        except KeyError:
+            print(f"An error occurred. No text found. event_data: {json.dumps(event_data)}")
+            text = ""
+        
+        # Process images
+        image_urls = []
+        try:
+            for file in event_data["files"]:
+                if file["mimetype"].startswith("image/"):
+                    image_url = file["url_private"]
+                    uploaded_url = upload_image_to_s3(image_url, image_bucket_name)
+                    image_urls.append(uploaded_url)
+        except KeyError:
+            image_urls = []
+        
+        # Process audio
+        audio_urls = []
+        audio_text = []
+        try:
+            for file in event_data["files"]:
+                if file["mimetype"].startswith(("audio/", "video/")):
+                    audio_url = file["url_private"]
+                    audio_urls.append(audio_url)
+
+            if audio_urls:
+                audio_text = transcribe_multiple_urls(audio_urls)
+                if audio_text:
+                    speech_instruction = prompts['speech_instruction']
+                    audio_text.append(speech_instruction)
+        except KeyError:
+            audio_urls = []
+            audio_text = []
+        
+        # Process documents
+        size_limit_mb = 5
+        application_files = []
+        try:
+            for file in event_data["files"]:
+                if file["mimetype"].startswith("application/") or file["mimetype"].startswith("text/"):
+                    file_url = file["url_private"]
+                    file_name = file.get("name", "Unnamed File")
+                    file_size_mb = file.get("size", 1) / (1024 * 1024)
+                    if file_size_mb > size_limit_mb:
+                        application_files.append({
+                            "file_name": file_name, 
+                            "content": f"File {file_name} is over the {size_limit_mb} MB limit. URL: {file_url}"
+                        })
+                    else:
+                        file_content = download_and_read_file(file_url, file["mimetype"])
+                        application_files.append({
+                            "Message": "The user sent a file with this message. The contents of the file have been appended to this message.", 
+                            "Filename": file_name, 
+                            "content": file_content
+                        })
+        except KeyError:
+            application_files = []
+        
+        # Check for attachments (forwarded messages)
+        if 'attachments' in event_data:
+            attachments = event_data['attachments']
+            for attachment in attachments:
+                if 'text' in attachment:
+                    forwarded_message_text = attachment['text']
+                    text += f"\n\nForwarded Message:\n{forwarded_message_text}"
+        
+        # Combine text with audio and application files
+        if audio_text:
+            text += " " + " ".join(audio_text)
+        if application_files:
+            text += " " + json.dumps(application_files)
+        
+        return {
+            'chat_id': chat_id,
+            'user_id': user_id,
+            'user_name': user_name,
+            'display_name': display_name,
+            'text': text,
+            'thread_ts': thread_ts,
+            'image_urls': image_urls,
+            'audio_urls': audio_urls,
+            'audio_text': audio_text,
+            'application_files': application_files,
+            'event_type': event_type
+        }
+        
+    except Exception as e:
+        print(f"Error processing Slack event: {e}")
+        return None
