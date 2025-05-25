@@ -12,6 +12,14 @@ from storage import decimal_default
 from slack_integration import send_slack_message, send_audio_to_slack
 from storage import save_message_weaviate
 
+# Import the messaging router for unified message sending
+try:
+    from messaging.router import get_global_router
+    MESSAGE_ROUTER_AVAILABLE = True
+except ImportError:
+    MESSAGE_ROUTER_AVAILABLE = False
+    print("Warning: MessageRouter not available, falling back to Slack-only messaging")
+
 
 def make_text_conversation(system_text, assistant_text, display_name, msg_history_summary, all_messages, text):
     current_datetime = datetime.datetime.now(datetime.timezone.utc)
@@ -345,10 +353,19 @@ def serialize_chat_completion_message(message):
     return message_dict
 
 
-def handle_message_content(response_message, event_type, thread_ts, chat_id, audio_text):
+def handle_message_content(response_message, event_type, thread_ts, chat_id, audio_text, source='slack'):
     """
     Handles both text and audio responses from OpenAI.
     Works with both dictionary and ChatCompletionMessage object formats.
+    Now supports multiple platforms via MessageRouter.
+    
+    Args:
+        response_message: The OpenAI response message
+        event_type: Type of event that triggered the response
+        thread_ts: Thread timestamp for threaded conversations
+        chat_id: Chat/channel ID where to send the response
+        audio_text: Whether this is an audio response
+        source: Platform source ('slack', 'telegram', etc.) - defaults to 'slack' for backward compatibility
     """
     
     print(f"Response Message: {response_message}")
@@ -375,7 +392,38 @@ def handle_message_content(response_message, event_type, thread_ts, chat_id, aud
     # Save the message
     save_message_weaviate('AssistantMessages', chat_id, assistant_reply, thread_ts)
 
-    # Send the message based on event type and format
+    # Send the message using MessageRouter if available, otherwise fall back to Slack-only
+    if MESSAGE_ROUTER_AVAILABLE:
+        try:
+            router = get_global_router()
+            
+            # Determine thread_id based on event type
+            thread_id = thread_ts if event_type in ['app_mention', 'New Email'] else None
+            
+            # Send appropriate message type
+            if audio_text:
+                router.send_audio(source, chat_id, assistant_reply, thread_id)
+            else:
+                router.send_message(source, chat_id, assistant_reply, thread_id)
+                
+            print(f"Message sent via {source} using MessageRouter")
+            
+        except Exception as e:
+            print(f"Error using MessageRouter, falling back to Slack: {e}")
+            # Fall back to original Slack-only behavior
+            _send_slack_fallback(event_type, thread_ts, chat_id, audio_text, assistant_reply)
+    else:
+        # Original Slack-only behavior for backward compatibility
+        _send_slack_fallback(event_type, thread_ts, chat_id, audio_text, assistant_reply)
+    
+    return
+
+
+def _send_slack_fallback(event_type, thread_ts, chat_id, audio_text, assistant_reply):
+    """
+    Fallback function for Slack-only messaging (preserves original behavior).
+    This ensures backward compatibility when MessageRouter is not available.
+    """
     if event_type in ['app_mention', 'New Email']:
         if audio_text:
             send_audio_to_slack(assistant_reply, chat_id, thread_ts)
@@ -386,8 +434,6 @@ def handle_message_content(response_message, event_type, thread_ts, chat_id, aud
             send_audio_to_slack(assistant_reply, chat_id, None)
         else:
             send_slack_message(assistant_reply, chat_id, None)
-    
-    return 
 
 
 def handle_tool_calls(response_message, available_functions, chat_id, conversations, thread_ts):

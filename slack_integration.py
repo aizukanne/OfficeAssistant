@@ -6,11 +6,14 @@ import tempfile
 import markdown2
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse, unquote
-from config import slack_bot_token, names_table, channels_table
+from config import slack_bot_token, names_table, channels_table, image_bucket_name
 
 from storage import (
     get_users, get_channels
 )
+
+from media_processing import transcribe_multiple_urls, download_and_read_file, upload_image_to_s3
+from prompts import prompts
 
 def convert_markdown_to_slack(content):
     # Convert bold text
@@ -632,7 +635,7 @@ def process_slack_event(slack_event):
                     audio_urls.append(audio_url)
 
             if audio_urls:
-                audio_text = transcribe_multiple_urls(audio_urls)
+                audio_text = transcribe_multiple_urls(audio_urls, platform='slack')
                 if audio_text:
                     speech_instruction = prompts['speech_instruction']
                     audio_text.append(speech_instruction)
@@ -655,7 +658,7 @@ def process_slack_event(slack_event):
                             "content": f"File {file_name} is over the {size_limit_mb} MB limit. URL: {file_url}"
                         })
                     else:
-                        file_content = download_and_read_file(file_url, file["mimetype"])
+                        file_content = download_and_read_file(file_url, file["mimetype"], platform='slack')
                         application_files.append({
                             "Message": "The user sent a file with this message. The contents of the file have been appended to this message.", 
                             "Filename": file_name, 
@@ -671,12 +674,6 @@ def process_slack_event(slack_event):
                 if 'text' in attachment:
                     forwarded_message_text = attachment['text']
                     text += f"\n\nForwarded Message:\n{forwarded_message_text}"
-        
-        # Combine text with audio and application files
-        if audio_text:
-            text += " " + " ".join(audio_text)
-        if application_files:
-            text += " " + json.dumps(application_files)
         
         return {
             'chat_id': chat_id,

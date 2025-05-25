@@ -89,10 +89,68 @@ from storage import (
 )
 
 from telegram_integration import (
-    process_telegram_event
+    process_telegram_event, send_telegram_message, send_telegram_audio, send_telegram_file
 )
 
 nltk.data.path.append("/opt/python/nltk_data")
+def get_available_functions(source):
+    """
+    Get available functions based on the source platform.
+    
+    Args:
+        source (str): The platform source ('slack', 'telegram', etc.)
+        
+    Returns:
+        dict: Dictionary of available functions for the platform
+    """
+    # Common functions available to all platforms
+    common_functions = {
+        "browse_internet": browse_internet,
+        "google_search": google_search,
+        "get_coordinates": get_coordinates,
+        "get_weather_data": get_weather_data,
+        "get_message_by_sort_id": get_message_by_sort_id,
+        "get_messages_in_range": get_messages_in_range,
+        "get_users": get_users,
+        "get_channels": get_channels,
+        "send_as_pdf": send_as_pdf,
+        "list_files": list_files,
+        "solve_maths": solve_maths,
+        "odoo_get_mapped_models": odoo_get_mapped_models,
+        #"odoo_get_mapped_fields": odoo_get_mapped_fields,
+        "odoo_create_record": odoo_create_record,
+        "odoo_fetch_records": odoo_fetch_records,
+        "odoo_update_record": odoo_update_record,
+        "odoo_delete_record": odoo_delete_record,
+        "ask_openai_o1": ask_openai_o1,
+        "get_embedding": get_embedding,
+        "manage_mute_status": manage_mute_status,
+        "search_and_format_products": search_and_format_products
+    }
+    
+    # Platform-specific functions
+    if source == 'slack':
+        platform_functions = {
+            "send_slack_message": send_slack_message,
+            "send_audio_to_slack": send_audio_to_slack,
+            "send_file_to_slack": send_file_to_slack,
+        }
+    elif source == 'telegram':
+        platform_functions = {
+            "send_telegram_message": send_telegram_message,
+            "send_telegram_audio": send_telegram_audio,
+            "send_telegram_file": send_telegram_file,
+        }
+    else:
+        # Default to no platform-specific functions for unknown sources
+        platform_functions = {}
+    
+    # Combine common and platform-specific functions
+    all_functions = {**common_functions, **platform_functions}
+    
+    print(f"Loaded {len(all_functions)} functions for platform '{source}' ({len(common_functions)} common + {len(platform_functions)} platform-specific)")
+    
+    return all_functions
 
 # Any remaining global variables that need to stay in the main file
 current_datetime = datetime.datetime.now(UTC)
@@ -193,6 +251,17 @@ def lambda_handler(event, context):
         event_type = processed_data['event_type']
         
         print(f"Processed {source} event - Chat ID: {chat_id}, User: {user_name}, Text: {text[:50]}...")
+        
+        # Append audio transcriptions and file contents to text (for both platforms)
+        if audio_text:
+            combined_audio_text = ' '.join(audio_text)
+            text += f" {combined_audio_text}"
+            print(f"Added audio transcription to text: {combined_audio_text[:100]}...")
+        
+        if application_files:
+            files_json = json.dumps(application_files)
+            text += f" {files_json}"
+            print(f"Added application files to text: {len(application_files)} files")
         
         # Get route (common processing)
         route_name = ""
@@ -310,33 +379,8 @@ def lambda_handler(event, context):
     # Save the user's message to Database 
     save_message_weaviate(user_table, chat_id, text, thread_ts, image_urls)
 
-    # Define available functions    
-    available_functions = {
-        "browse_internet": browse_internet,
-        "google_search": google_search,
-        "get_coordinates": get_coordinates,
-        "get_weather_data": get_weather_data,
-        "get_message_by_sort_id": get_message_by_sort_id,
-        "get_messages_in_range": get_messages_in_range,
-        "send_slack_message": send_slack_message,
-        "send_audio_to_slack": send_audio_to_slack,
-        "send_file_to_slack": send_file_to_slack,        
-        "get_users": get_users,
-        "get_channels": get_channels,
-        "send_as_pdf": send_as_pdf,
-        "list_files": list_files,
-        "solve_maths": solve_maths,
-        "odoo_get_mapped_models": odoo_get_mapped_models,
-        #"odoo_get_mapped_fields": odoo_get_mapped_fields,
-        "odoo_create_record": odoo_create_record,
-        "odoo_fetch_records": odoo_fetch_records,
-        "odoo_update_record": odoo_update_record,
-        "odoo_delete_record": odoo_delete_record,
-        "ask_openai_o1": ask_openai_o1,
-        "get_embedding": get_embedding,
-        "manage_mute_status": manage_mute_status,
-        "search_and_format_products": search_and_format_products
-    }    
+    # Define available functions dynamically based on source platform
+    available_functions = get_available_functions(source)
 
     while True:
         # Handle message content if present
@@ -350,7 +394,7 @@ def lambda_handler(event, context):
             has_tool_calls = getattr(response_message, "tool_calls", None)
 
         if has_content or has_audio:
-            handle_message_content(response_message, event_type, thread_ts, chat_id, audio_text)
+            handle_message_content(response_message, event_type, thread_ts, chat_id, audio_text, source)
 
         # Check and process tool calls
         if has_tool_calls:
@@ -691,63 +735,7 @@ def smart_send_message(message, user_name):
         return "No matching user found."
     
 
-def download_and_read_file(url, content_type):
-    headers = {
-        'Authorization': f'Bearer {slack_bot_token}',
-        'Content-Type': 'image/x-www-form-urlencoded'
-    }    
-    try:
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-        
-        # Extract the original file name and extension from the URL    
-        parsed_url = urlparse(url)
-        original_file_name = os.path.basename(unquote(parsed_url.path))
-        _, file_extension = os.path.splitext(original_file_name)
-
-        # Define the S3 bucket and folder where the file will be saved 
-        bucket_name = docs_bucket_name
-        folder_name = 'uploads'
-
-        # Use the original file extension for the temporary file
-        with tempfile.NamedTemporaryFile(delete=False, suffix=file_extension) as tmp_file:
-            tmp_file.write(response.content)
-            tmp_file.seek(0)
-            #print(f"File Name: {tmp_file.name}")
-            
-            # Upload the file to S3 with the original file name    
-            file_key = f"{folder_name}/{original_file_name}"
-            s3_client = boto3.client('s3')
-            s3_client.upload_file(tmp_file.name, bucket_name, file_key)
-
-            if 'text/csv' in content_type:
-                f = StringIO(response.text)
-                reader = csv.reader(f)
-                return '\n'.join([','.join(row) for row in reader])
-            elif 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' in content_type:
-                workbook = openpyxl.load_workbook(tmp_file.name)
-                sheet = workbook.active
-                return '\n'.join([','.join([str(cell.value) for cell in row]) for row in sheet.rows])
-            elif 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' in content_type:
-                doc = Document(tmp_file.name)
-                content = '\n'.join([p.text for p in doc.paragraphs])
-                summary = rank_sentences(content, stopwords, max_sentences=50)
-                return summary
-            elif 'application/pdf' in content_type:
-                pdf_reader = PyPDF2.PdfReader(tmp_file.name)
-                text = ' '.join([page.extract_text() for page in pdf_reader.pages if page.extract_text()])
-                summary = rank_sentences(text, stopwords, max_sentences=50)
-                return summary
-            elif 'text/plain' in content_type:
-                with open(tmp_file.name, 'r') as f:
-                    content = f.read()
-                return content
-            else:
-                return 'Unsupported file type'
-    except requests.exceptions.RequestException as e:
-        return f'Error downloading file: {e}'
-    except Exception as e:
-        return f'Error processing file: {e}'
+# download_and_read_file function moved to media_processing.py to avoid circular imports
         
 
 class MyFPDF(FPDF):

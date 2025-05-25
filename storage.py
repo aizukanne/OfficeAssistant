@@ -72,8 +72,8 @@ def save_message_weaviate(collection_name, chat_id, text, thread=None, image_url
     if thread is not None:
         properties["thread"] = thread
     
-    if image_urls is not None:
-        properties["image_urls"] = image_urls
+    if image_urls is not None and image_urls:
+        properties["image_urls"] = json.dumps(image_urls)
     
     try:
         collection.data.insert(properties=properties)
