@@ -492,7 +492,28 @@ tools = [
                 "required": ["model_name", "criteria"]
             }
         }
-    },    
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "print_record",
+            "description": "Prints the specified record (subject to the record being printable). This function handles authentication and then sends a request to the Odoo API to generate a PDF of the record.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "model_name": {
+                        "type": "string",
+                        "description": "The technical name of the model."
+                    },
+                    "record_id": {
+                        "type": "integer",
+                        "description": "The ID of the document to print."
+                    }
+                },
+                "required": ["model_name", "record_id"]
+            }
+        }
+    },        
     {
         "type": "function",
         "function": {

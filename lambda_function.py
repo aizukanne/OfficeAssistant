@@ -39,7 +39,7 @@ from decimal import Decimal
 from docx import Document
 from fpdf import FPDF
 from io import BytesIO, StringIO
-from odoo_functions import authenticate, odoo_get_mapped_models, odoo_get_mapped_fields, odoo_create_record, odoo_fetch_records, odoo_update_record, odoo_delete_record
+from odoo_functions import authenticate, odoo_get_mapped_models, odoo_get_mapped_fields, odoo_create_record, odoo_fetch_records, odoo_update_record, odoo_delete_record, odoo_print_record
 from openai import OpenAIError, BadRequestError
 from prompts import prompts  # Import the prompts from prompts.py
 from semantic_router import Route
@@ -122,6 +122,7 @@ def get_available_functions(source):
         "odoo_fetch_records": odoo_fetch_records,
         "odoo_update_record": odoo_update_record,
         "odoo_delete_record": odoo_delete_record,
+        "odoo_print_record": odoo_print_record,
         "ask_openai_o1": ask_openai_o1,
         "get_embedding": get_embedding,
         "manage_mute_status": manage_mute_status,

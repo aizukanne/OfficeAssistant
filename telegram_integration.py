@@ -177,21 +177,104 @@ def process_telegram_event(telegram_event):
         return None
 
 
+
 def send_telegram_message(chat_id, message):
-    # Telegram Bot URL
+   
     url = f"https://api.telegram.org/bot{telegram_bot_token}/sendMessage"
-
-    # Message data
-    data = {
-        'chat_id': chat_id,
-        'text': message,
-        'parse_mode': 'Markdown'
-    }
-
-    # Send POST request to Telegram Bot API
-    response = requests.post(url, data=data)
-
-    return response.json()
+    
+    def convert_markdown_to_html(text):
+        #Convert markdown formatting to HTML
+        # First escape HTML characters to prevent injection
+        escaped = html.escape(text)
+        
+        # Convert markdown-style formatting to HTML
+        # **bold** -> <b>bold</b>
+        escaped = re.sub(r'\*\*([^*\n]+?)\*\*', r'<b>\1</b>', escaped)
+        
+        # *italic* -> <i>italic</i> (avoid conflicts with bold)
+        escaped = re.sub(r'(?<!\*)\*([^*\n]+?)\*(?!\*)', r'<i>\1</i>', escaped)
+        
+        # `code` -> <code>code</code>
+        escaped = re.sub(r'`([^`\n]+?)`', r'<code>\1</code>', escaped)
+        
+        # __underline__ -> <u>underline</u>
+        escaped = re.sub(r'__([^_\n]+?)__', r'<u>\1</u>', escaped)
+        
+        # ~~strikethrough~~ -> <s>strikethrough</s>
+        escaped = re.sub(r'~~([^~\n]+?)~~', r'<s>\1</s>', escaped)
+        
+        return escaped
+    
+    def split_message(text, max_length=4096):
+        """Split long messages at natural break points"""
+        if len(text) <= max_length:
+            return [text]
+        
+        chunks = []
+        lines = text.split('\n')
+        current_chunk = ""
+        
+        for line in lines:
+            if len(current_chunk) + len(line) + 1 > max_length:
+                if current_chunk:
+                    chunks.append(current_chunk.strip())
+                    current_chunk = line
+                else:
+                    # Single line too long, split by words
+                    words = line.split(' ')
+                    for word in words:
+                        if len(current_chunk) + len(word) + 1 > max_length:
+                            if current_chunk:
+                                chunks.append(current_chunk.strip())
+                                current_chunk = word
+                            else:
+                                # Single word too long, just add it
+                                chunks.append(word)
+                        else:
+                            current_chunk = current_chunk + ' ' + word if current_chunk else word
+            else:
+                current_chunk = current_chunk + '\n' + line if current_chunk else line
+        
+        if current_chunk:
+            chunks.append(current_chunk.strip())
+        
+        return chunks
+    
+    # Convert markdown to HTML
+    formatted_message = convert_markdown_to_html(message)
+    
+    # Split if message is too long
+    chunks = split_message(formatted_message)
+    
+    results = []
+    for i, chunk in enumerate(chunks):
+        data = {
+            'chat_id': chat_id,
+            'text': chunk,
+            'parse_mode': 'HTML'
+        }
+        
+        # Try with HTML formatting first
+        response = requests.post(url, data=data)
+        result = response.json()
+        
+        # If HTML parsing fails, try without formatting
+        if not result.get('ok') and 'parse' in result.get('description', '').lower():
+            print(f"HTML parsing failed, sending without formatting: {result.get('description', '')}")
+            data['parse_mode'] = None
+            data['text'] = html.escape(message)  # Use original message, just escaped
+            response = requests.post(url, data=data)
+            result = response.json()
+        
+        results.append(result)
+        
+        # Small delay between chunks to avoid rate limiting
+        if i < len(chunks) - 1:
+            time.sleep(0.1)
+    
+    # Return the first result for backward compatibility
+    # (or the last one if you want the final result)
+    return results[0] if results else {"ok": False, "error": "No message sent"}
 
     
 def get_telegram_file_url(file_id):

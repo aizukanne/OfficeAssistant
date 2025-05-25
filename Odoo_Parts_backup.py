@@ -571,49 +571,6 @@ def delete_records(model_name, criteria):
         return {'error': f'Other error occurred: {err}'}
 
 
-def print_record(model_name, record_id):
-    """
-    Prints the specified record (subject to the record being printable).
-    
-    Args:
-    - model_name (str): The technical name of the model.
-    - record_id (int): The ID of the document to print.
-    
-    Returns:
-    - dict: A dictionary containing the result of the print request or an error message.
-    """
-    auth_response = authenticate(odoo_url, odoo_db, odoo_login, odoo_password)
-    if 'session_id' not in auth_response:
-        return auth_response
-    
-    session_id = auth_response['session_id']
-    endpoint = f"{odoo_url}/api/generate_pdf"
-    headers = {
-        'Content-Type': 'application/json',
-        'Cookie': f'session_id={session_id}'
-    }
-    payload = {
-        "params": {
-            "object_type": model_name,
-            "id": record_id
-        }
-    }
-
-    try:
-        data = json.dumps(payload).encode('utf-8')
-        req = urllib.request.Request(endpoint, data=data, headers=headers, method='POST')
-        with urllib.request.urlopen(req) as resp:
-            response_data = resp.read().decode()
-            print(f"Response content: {response_data}")  # Log response content for debugging
-            return json.loads(response_data)
-    except urllib.error.HTTPError as http_err:
-        return {'error': f'HTTP error occurred: {http_err}'}
-    except json.JSONDecodeError as json_err:
-        return {'error': f'JSON decode error occurred: {json_err} - Response content: {response_data}'}
-    except Exception as err:
-        return {'error': f'Other error occurred: {err}'}
-
-
 def fetch_data_from_api(query, limit=None, type=""):
     """
     Fetches data from the Odoo API endpoint using a provided SQL query.
