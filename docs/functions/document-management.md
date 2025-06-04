@@ -375,6 +375,7 @@ When working with document management:
 - Optimize for performance
 - Clean up temporary files
 - Respect privacy and data protection
+- Integrate with [Privacy Detection](privacy-detection.md) for PII scanning in documents
 
 ## Future Enhancements
 

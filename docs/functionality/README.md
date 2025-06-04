@@ -14,6 +14,7 @@ This section provides detailed information about the various functionalities pro
 | [Document Processing](document-processing.md) | Document handling | File operations and document analysis |
 | [Message Management](message-management.md) | Message handling | Routing and message history |
 | [User Management](user-management.md) | User interaction | User and channel operations |
+| [Privacy & Security](privacy-security.md) | Data protection | PII detection, anonymization, compliance |
 
 ## Communication
 
@@ -75,6 +76,17 @@ Maria interacts with Slack users:
 
 [Learn more about User Management](user-management.md)
 
+## Privacy & Security
+
+Maria includes comprehensive privacy and security features:
+
+- Automatic PII detection and anonymization
+- Consent-based data processing
+- Secure audit logging without PII storage
+- Compliance support for GDPR, CCPA, and other regulations
+
+[Learn more about Privacy & Security](privacy-security.md)
+
 ## Navigation
 
 - [Communication](communication.md)
@@ -83,6 +95,7 @@ Maria interacts with Slack users:
 - [Document Processing](document-processing.md)
 - [Message Management](message-management.md)
 - [User Management](user-management.md)
+- [Privacy & Security](privacy-security.md)
 
 ---
 

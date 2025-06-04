@@ -326,6 +326,7 @@ When working with media processing:
 - Optimize for performance
 - Clean up temporary files
 - Respect privacy and data protection
+- Integrate with [Privacy Detection](privacy-detection.md) for PII scanning in media content
 
 ## Future Enhancements
 

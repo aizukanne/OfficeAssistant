@@ -11,7 +11,7 @@ The application consists of several interconnected modules that work together to
 3. **storage.py**: Handles data persistence in DynamoDB and Weaviate
 4. **slack_integration.py**: Manages interactions with the Slack API
 5. **media_processing.py**: Handles audio, image, and document processing
-6. **nlp_utils.py**: Provides natural language processing utilities
+6. **nlp_utils.py**: Provides natural language processing utilities including PII detection
 7. **extservices.py**: Interfaces with external services (calendar, weather, etc.)
 8. **tools.py**: Defines the available tools and their parameters
 9. **prompts.py**: Contains system prompts and instructions for different scenarios
@@ -29,6 +29,7 @@ The system follows a modular architecture where each component has a specific re
 - **Conversation Management**: Handles the formatting and processing of conversations with the AI model
 - **Storage Layer**: Provides persistence for messages, user data, and other information
 - **Integration Modules**: Connect to external services like Slack, ERPNext, and Odoo
+- **Privacy Modules**: Handle PII detection and data protection
 - **Utility Modules**: Provide common functionality used across the system
 
 ## Data Flow
@@ -36,10 +37,11 @@ The system follows a modular architecture where each component has a specific re
 1. Slack events trigger the Lambda function
 2. The Lambda function processes the event and extracts relevant information
 3. Message history and context are retrieved from storage
-4. The message is routed to the appropriate handler based on content
-5. External services are called as needed
-6. A response is generated and sent back to Slack
-7. The interaction is saved to storage for future reference
+4. PII detection is performed if enabled (optional privacy processing)
+5. The message is routed to the appropriate handler based on content
+6. External services are called as needed
+7. A response is generated and sent back to Slack
+8. The interaction is saved to storage for future reference
 
 ## Deployment Architecture
 
@@ -49,6 +51,7 @@ The system is deployed as an AWS Lambda function that is triggered by Slack even
 - **DynamoDB**: For structured data storage
 - **Weaviate**: For vector-based message retrieval
 - **S3**: For file storage
+- **NER Lambda**: For PII detection and privacy processing
 - **External APIs**: For additional functionality
 
 ---

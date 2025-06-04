@@ -290,6 +290,7 @@ When working with user management:
 
 - Respect user privacy and data protection regulations
 - Keep user information up to date with regular synchronization
+- Integrate with [Privacy & Security](privacy-security.md) features for comprehensive data protection
 - Use appropriate permission checks before accessing user data
 - Consider user time zones when sending messages
 - Implement proper error handling for user operations

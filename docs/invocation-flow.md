@@ -22,6 +22,7 @@ sequenceDiagram
     participant User
     participant Slack
     participant Lambda
+    participant PIIDetection
     participant Storage
     participant OpenAI
     participant Tools
@@ -30,6 +31,12 @@ sequenceDiagram
     Slack->>Lambda: Trigger event
     Lambda->>Storage: Retrieve conversation history
     Lambda->>Lambda: Process media (if any)
+    
+    alt PII Detection Enabled
+        Lambda->>PIIDetection: Detect and process PII
+        PIIDetection->>Lambda: Return processed text
+    end
+    
     Lambda->>Lambda: Route message
     Lambda->>Storage: Get relevant messages
     Lambda->>Lambda: Build context
@@ -80,7 +87,36 @@ During this phase:
 - Event type is determined (message, mention, etc.)
 - Initial validation is performed
 
-### 3. Message Routing
+### 3. Privacy Detection (Optional)
+
+If PII detection is enabled, the message undergoes privacy processing before routing:
+
+```python
+# PII Detection Integration
+enable_pii = False  # Configuration flag
+
+if enable_pii:
+    text = detect_pii(text)
+```
+
+During this phase:
+- Message text is analyzed for Personally Identifiable Information (PII)
+- Detected PII is processed according to configured anonymization rules
+- Processed message continues through the normal flow
+- Original PII is never stored in logs or persistent storage
+
+The PII detection process:
+
+1. **Input Validation**: Message text is validated for processing
+2. **NER Lambda Invocation**: External Named Entity Recognition service is called
+3. **Entity Detection**: Advanced NLP models identify potential PII
+4. **Confidence Scoring**: Each detection receives a confidence score
+5. **Anonymization**: Detected PII is processed according to rules (redact, mask, tokenize)
+6. **Error Handling**: Graceful fallback to original text if processing fails
+
+For detailed information about PII detection, see [Privacy Detection](functions/privacy-detection.md).
+
+### 4. Message Routing
 
 The message is categorized using the semantic router:
 
@@ -95,7 +131,7 @@ This determines:
 - Which tools to make available
 - How to process the message
 
-### 4. Context Building
+### 5. Context Building
 
 Relevant context is gathered to inform the response:
 
@@ -116,7 +152,7 @@ This includes:
 - Any attached media (images, audio, documents)
 - User-specific context
 
-### 5. Response Generation
+### 6. Response Generation
 
 The conversation is formatted and sent to OpenAI:
 
@@ -142,7 +178,7 @@ The system:
 - Sends the request to the OpenAI API
 - Receives the initial response
 
-### 6. Tool Execution
+### 7. Tool Execution
 
 If the response includes tool calls, they are executed:
 
@@ -170,7 +206,7 @@ Tools might include:
 - Document processing
 - External API calls
 
-### 7. Response Delivery
+### 8. Response Delivery
 
 The final response is formatted and sent to Slack:
 

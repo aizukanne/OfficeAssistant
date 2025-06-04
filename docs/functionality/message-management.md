@@ -214,6 +214,7 @@ When working with message management:
 - Include relevant metadata with messages
 - Consider privacy implications when retrieving message history
 - Balance context length with relevance
+- Integrate with [Privacy & Security](privacy-security.md) features for PII protection
 - Implement proper error handling for storage operations
 
 ## Future Enhancements

@@ -13,6 +13,7 @@ This section provides detailed descriptions of the key functions and modules tha
 | [Storage Operations](storage-operations.md) | Manages data persistence | Saves and retrieves messages and other data |
 | [Slack Integration](slack-integration.md) | Interfaces with Slack | Sends messages and processes Slack events |
 | [Media Processing](media-processing.md) | Handles multimedia | Processes audio, images, and documents |
+| [Privacy Detection](privacy-detection.md) | Protects sensitive data | Detects and anonymizes PII in messages |
 
 ## Integration Functions
 
@@ -49,6 +50,7 @@ Functions that process different types of content:
 - Audio processing
 - Image processing
 - Document processing
+- Privacy and PII processing
 
 ## Navigation
 
@@ -57,6 +59,7 @@ Functions that process different types of content:
 - [Storage Operations](storage-operations.md)
 - [Slack Integration](slack-integration.md)
 - [Media Processing](media-processing.md)
+- [Privacy Detection](privacy-detection.md)
 - [ERP Integrations](erp-integrations.md)
 - [External Services](external-services.md)
 - [Web and Search](web-and-search.md)
