@@ -7,6 +7,7 @@ from semantic_router.encoders import OpenAIEncoder
 
 # Initialize API keys from environment variables
 calendar_id = os.getenv('GOOGLE_CALENDAR_ID')
+cerebras_api_key = os.getenv('CEREBRAS_API_KEY')
 gemini_api_key = os.getenv('GEMINI_API_KEY')
 google_api_key = os.getenv('GOOGLE_API_KEY')
 erpnext_api_key = os.getenv('ERPNEXT_API_KEY') 

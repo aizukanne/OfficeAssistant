@@ -39,7 +39,7 @@ from decimal import Decimal
 from docx import Document
 from fpdf import FPDF
 from io import BytesIO, StringIO
-from odoo_functions import authenticate, odoo_get_mapped_models, odoo_get_mapped_fields, odoo_create_record, odoo_fetch_records, odoo_update_record, odoo_delete_record, odoo_print_record
+from odoo_functions import authenticate, odoo_get_mapped_models, odoo_get_mapped_fields, odoo_create_record, odoo_fetch_records, odoo_update_record, odoo_delete_record, odoo_print_record, odoo_post_record
 from openai import OpenAIError, BadRequestError
 from prompts import prompts  # Import the prompts from prompts.py
 from semantic_router import Route
@@ -59,8 +59,8 @@ from extservices import get_weather_data
 from nltk.tokenize import sent_tokenize, word_tokenize
 
 from conversation import (
-    make_text_conversation, make_vision_conversation, make_audio_conversation,
-    make_openai_vision_call, make_openai_audio_call, ask_openai_o1,
+    make_text_conversation, make_vision_conversation, make_audio_conversation, make_cerebras_conversation,
+    make_openai_vision_call, make_openai_audio_call, ask_openai_o1, make_cerebras_call,
     serialize_chat_completion_message, handle_message_content, handle_tool_calls
 )
 
@@ -93,6 +93,7 @@ from telegram_integration import (
 )
 
 nltk.data.path.append("/opt/python/nltk_data")
+
 def get_available_functions(source):
     """
     Get available functions based on the source platform.
@@ -123,6 +124,7 @@ def get_available_functions(source):
         "odoo_update_record": odoo_update_record,
         "odoo_delete_record": odoo_delete_record,
         "odoo_print_record": odoo_print_record,
+        "odoo_post_record": odoo_post_record,
         "ask_openai_o1": ask_openai_o1,
         "get_embedding": get_embedding,
         "manage_mute_status": manage_mute_status,
@@ -285,6 +287,7 @@ def lambda_handler(event, context):
         if route_name == 'chitchat':
             summary_len = 0
             full_text_len = 2
+            relevant = 0
             system_text = prompts['instruct_basic']
             assistant_text = ""
         elif route_name == 'writing':
@@ -371,11 +374,13 @@ def lambda_handler(event, context):
                                                 all_messages, text, image_urls)
             response_message = make_openai_vision_call(client, conversation)
         else:
-            # Regular vision conversation for text-only
-            conversation = make_vision_conversation(system_text, assistant_text, display_name, 
-                                                all_relevant_messages, msg_history_summary, 
-                                                all_messages, text)
-            response_message = make_openai_vision_call(client, conversation)
+            if route_name == 'cerebras':
+                # Regular vision conversation for text-only
+                conversation = make_cerebras_conversation(system_text, assistant_text, display_name, all_relevant_messages, msg_history_summary, all_messages, text)
+                response_message = make_cerebras_call(conversation)
+            else:
+                conversation = make_vision_conversation(system_text, assistant_text, display_name, all_relevant_messages, msg_history_summary, all_messages, text)
+                response_message = make_openai_vision_call(client, conversation)
 
     # Save the user's message to Database 
     save_message_weaviate(user_table, chat_id, text, thread_ts, image_urls)
@@ -410,8 +415,10 @@ def lambda_handler(event, context):
                 # Use vision for image-based conversations
                 response_message = make_openai_vision_call(client, conversation_with_tool_responses)
             else:
-                # Default to vision API
-                response_message = make_openai_vision_call(client, conversation_with_tool_responses)
+                if route_name == 'chitchat':
+                    response_message = make_cerebras_call(conversation_with_tool_responses)
+                else:
+                    response_message = make_openai_vision_call(client, conversation_with_tool_responses)
         else:
             weaviate_client.close()
             break  # Exit the loop if there are no tool calls

@@ -1,11 +1,13 @@
 import json
 import time
 import datetime
+from cerebras_tool_converter import convert_tools_for_cerebras
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import logging
+import requests
 from typing import List, Dict, Any, Optional
 
-from config import client, ai_temperature, slack_bot_token
+from config import client, cerebras_api_key, ai_temperature, slack_bot_token
 from tools import tools  # Import tools from tools.py
 from storage import decimal_default
 
@@ -254,6 +256,81 @@ def make_audio_conversation(system_text, assistant_text, display_name, all_relev
     return conversation
 
 
+def make_cerebras_conversation(system_text, assistant_text, display_name, all_relevant_messages, msg_history_summary, all_messages, text, image_urls=None):
+    """
+    Create a conversation format specifically for Cerebras API.
+    Uses simple string content format that Cerebras expects.
+    
+    Args:
+        system_text (str): System prompt text
+        assistant_text (str): Initial assistant message
+        display_name (str): User's display name  
+        all_relevant_messages (list): Relevant message history
+        msg_history_summary (list): Summary of message history
+        all_messages (list): All messages in conversation
+        text (str): Current user message text
+        image_urls (list): Image URLs (ignored - Cerebras doesn't support images)
+        
+    Returns:
+        list: Conversation array formatted for Cerebras API
+    """
+    
+    current_datetime = datetime.datetime.now(datetime.timezone.utc)
+    datetime_msg = f"Today is {current_datetime.strftime('%A %d %B %Y')} and the time is {current_datetime.strftime('%I:%M %p')} GMT. Use this to accurately understand statements involving relative time, such as 'tomorrow', 'last week', last year or any other reference of time."
+
+    # Build conversation with simple string content (Cerebras format)
+    conversation = [
+        {"role": "system", "content": system_text},
+        {"role": "assistant", "content": assistant_text}
+    ]
+
+    conversation.append({
+        "role": "assistant",
+        "content": "Here is some relevant information from past conversations which may contain information that could provide additional context or information."
+    })      
+
+    conversation.append({ 
+        "role": "assistant", 
+        "content": json.dumps(all_relevant_messages, default=decimal_default)
+    })
+
+    conversation.append({ 
+        "role": "assistant", 
+        "content": json.dumps(msg_history_summary, default=decimal_default)
+    })
+
+    # Add historical messages - simple string content only
+    for message in all_messages:
+        conversation.append({
+            "role": message['role'],
+            "content": str(message['message'])  # Simple string content
+        })
+
+    conversation.append({
+        "role": "assistant",
+        "content": "All the previous messages are a trail of the message history to aid your understanding of the conversation. The next message is the current request from the user."
+    })
+
+    conversation.append({
+        "role": "assistant",
+        "content": datetime_msg
+    })        
+
+    # Add final user message - simple format
+    final_message = {
+        "role": "user",
+        "content": text  # Simple string content
+    }
+    
+    if display_name is not None and display_name != "":
+        final_message["name"] = display_name
+    
+    conversation.append(final_message)
+
+    print(json.dumps(conversation)) 
+    
+    return conversation
+
 
 def make_openai_vision_call(client, conversations):
     try:
@@ -321,34 +398,164 @@ def ask_openai_o1(prompt):
         return None
 
 
+def make_cerebras_call(conversations, model="llama-4-scout-17b-16e-instruct", max_tokens=2500):
+    """
+    Make a Cerebras API call similar to OpenAI format
+    
+    Args:
+        conversations (list): Array of message dictionaries
+        model (str): Model name to use
+        max_tokens (int): Maximum tokens to generate
+        
+    Returns:
+        dict: Message object from response, or None if error
+    """
+    cerebras_tools = select_cerebras_tools(tools)
+    cerebras_compatible_tools = ensure_object_properties(convert_tools_for_cerebras(cerebras_tools))
+
+    try:
+        url = "https://api.cerebras.ai/v1/chat/completions"
+        
+        headers = {
+            "Authorization": f"Bearer {cerebras_api_key}",
+            "Content-Type": "application/json"
+        }
+        
+        # Prepare the payload - keep it minimal for Cerebras
+        payload = {
+            "model": model,
+            "messages": conversations,
+            "temperature": ai_temperature,
+            "max_completion_tokens": max_tokens,
+            "tools": cerebras_compatible_tools
+        }
+        
+        # Make the API call
+        response = requests.post(url, headers=headers, json=payload, timeout=30)
+        
+        # Check for success
+        if response.status_code == 200:
+            result = response.json()
+            print(result)  # Print full response like OpenAI version
+            return result["choices"][0]["message"]
+        else:
+            print(f"API call failed with status {response.status_code}: {response.text}")
+            return None
+            
+    except Exception as e:
+        print(f"An error occurred during the Cerebras API call: {e}")
+        return None
+
+def ensure_object_properties(tools):
+    for tool in tools:
+        params = tool.get("function", {}).get("parameters", {})
+        properties = params.get("properties", {})
+        
+        for prop_name, prop_def in properties.items():
+            if (prop_def.get("type") == "object" and 
+                "properties" not in prop_def and 
+                "anyOf" not in prop_def):
+                # Add empty properties to satisfy Cerebras
+                prop_def["properties"] = {}
+                #print(f"Fixed {prop_name}: added empty properties")
+    
+    return tools
+
+def select_cerebras_tools(all_tools):
+    """
+    Generic function to select tools by name
+    
+    Args:
+        all_tools (list): Complete list of tools
+        tool_names (list or set): Names of tools to select
+        
+    Returns:
+        list: Selected tools
+    """
+    tool_names = {
+        "browse_internet",
+        "google_search", 
+        "get_coordinates",
+        "get_weather_data",
+        "get_message_by_sort_id",
+        "get_messages_in_range",
+        "get_users",
+        "get_channels",
+        "manage_mute_status",
+        "search_and_format_products"
+    }
+    if isinstance(tool_names, list):
+        tool_names = set(tool_names)
+    
+    selected = []
+    
+    for tool in all_tools:
+        function_name = tool.get("function", {}).get("name")
+        if function_name in tool_names:
+            selected.append(tool)
+    
+    print(f"Selected {len(selected)} tools: {[t['function']['name'] for t in selected]}")
+    return selected
+
 def serialize_chat_completion_message(message):
     """
-    Converts a ChatCompletionMessage object into a serializable dictionary.
+    Converts a ChatCompletionMessage object or dict into a serializable dictionary.
     """
+    # Handle both object and dict formats
+    try:
+        # Try object format first
+        content = message.content
+        role = message.role
+        function_call = getattr(message, 'function_call', None)
+        tool_calls = getattr(message, 'tool_calls', None)
+    except AttributeError:
+        # Handle dict format
+        if 'choices' in message:
+            # Full API response format
+            msg_data = message['choices'][0]['message']
+        else:
+            # Already extracted message
+            msg_data = message
+            
+        content = msg_data.get('content')
+        role = msg_data.get('role')
+        function_call = msg_data.get('function_call')
+        tool_calls = msg_data.get('tool_calls')
+    
     message_dict = {
-        "content": message.content,
-        "role": message.role
+        "content": content,
+        "role": role
     }
 
     # Serialize the function_call if it exists
-    if message.function_call:
-        message_dict["function_call"] = {
-            "name": message.function_call.name,
-            "arguments": message.function_call.arguments  # Assuming arguments are in JSON format
-        }
+    if function_call:
+        if hasattr(function_call, 'name'):
+            # Object format
+            message_dict["function_call"] = {
+                "name": function_call.name,
+                "arguments": function_call.arguments
+            }
+        else:
+            # Dict format
+            message_dict["function_call"] = function_call
 
     # Serialize tool_calls if they exist
-    if message.tool_calls:
+    if tool_calls:
         message_dict["tool_calls"] = []
-        for tool_call in message.tool_calls:
-            message_dict["tool_calls"].append({
-                "id": tool_call.id,
-                "function": {
-                    "name": tool_call.function.name,
-                    "arguments": tool_call.function.arguments  # Assuming arguments are in JSON format
-                },
-                "type": tool_call.type
-            })
+        for tool_call in tool_calls:
+            if hasattr(tool_call, 'id'):
+                # Object format
+                message_dict["tool_calls"].append({
+                    "id": tool_call.id,
+                    "function": {
+                        "name": tool_call.function.name,
+                        "arguments": tool_call.function.arguments
+                    },
+                    "type": tool_call.type
+                })
+            else:
+                # Dict format - already serialized
+                message_dict["tool_calls"].append(tool_call)
 
     return message_dict
 
@@ -435,22 +642,40 @@ def _send_slack_fallback(event_type, thread_ts, chat_id, audio_text, assistant_r
         else:
             send_slack_message(assistant_reply, chat_id, None)
 
-
 def handle_tool_calls(response_message, available_functions, chat_id, conversations, thread_ts):
     from storage import save_message_weaviate
     
-    tool_calls = response_message.tool_calls
+    # Try object format first, fall back to dict format
+    try:
+        tool_calls = response_message.tool_calls
+    except AttributeError:
+        # Handle dict format
+        if 'tool_calls' in response_message:
+            tool_calls = response_message['tool_calls']
+        else:
+            tool_calls = response_message['choices'][0]['message']['tool_calls']
 
     response_message_dict = serialize_chat_completion_message(response_message)
     conversations.append(response_message_dict)
     
     def process_tool_call(tool_call):
         try:
-            function_name = tool_call.function.name
+            # Handle both object and dict formats
+            try:
+                # Object format
+                function_name = tool_call.function.name
+                tool_call_id = tool_call.id
+                function_arguments = tool_call.function.arguments
+            except AttributeError:
+                # Dict format
+                function_name = tool_call['function']['name']
+                tool_call_id = tool_call['id']
+                function_arguments = tool_call['function']['arguments']
+            
             function_to_call = available_functions.get(function_name)
 
             if function_to_call:
-                function_args = json.loads(tool_call.function.arguments)
+                function_args = json.loads(function_arguments)
                 function_response = function_to_call(**function_args)
                 print(f"Raw Function Response: {function_response}")
 
@@ -461,15 +686,23 @@ def handle_tool_calls(response_message, available_functions, chat_id, conversati
                         save_message_weaviate('AssistantMessages', chat_id, function_response, thread_ts)
                     
                 return {
-                    "tool_call_id": tool_call.id,
+                    "tool_call_id": tool_call_id,
                     "role": "tool",
                     "name": function_name,
                     "content": function_response,
                 }
         except Exception as e:
-            logging.error(f"Error processing tool call {tool_call.id}: {str(e)}")
+            # Handle error logging for both formats
+            try:
+                tool_call_id = tool_call.id
+                function_name = tool_call.function.name
+            except AttributeError:
+                tool_call_id = tool_call['id']
+                function_name = tool_call['function']['name']
+                
+            logging.error(f"Error processing tool call {tool_call_id}: {str(e)}")
             return {
-                "tool_call_id": tool_call.id,
+                "tool_call_id": tool_call_id,
                 "role": "tool",
                 "name": function_name,
                 "content": json.dumps({"error": str(e)}),

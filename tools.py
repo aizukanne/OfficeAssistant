@@ -496,7 +496,7 @@ tools = [
     {
         "type": "function",
         "function": {
-            "name": "print_record",
+            "name": "odoo_print_record",
             "description": "Prints the specified record (subject to the record being printable). This function handles authentication and then sends a request to the Odoo API to generate a PDF of the record.",
             "parameters": {
                 "type": "object",
@@ -513,7 +513,28 @@ tools = [
                 "required": ["model_name", "record_id"]
             }
         }
-    },        
+    }, 
+    {
+        "type": "function",
+        "function": {
+            "name": "odoo_post_record",
+            "description": "Posts a record in the specified model using the record ID. This function handles authentication and then sends a PUT request to the Odoo API to post the record.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "external_model": {
+                        "type": "string",
+                        "description": "The technical name of the external model."
+                    },
+                    "record_id": {
+                        "type": "integer",
+                        "description": "The ID of the record to post."
+                    }
+                },
+                "required": ["external_model", "record_id"]
+            }
+        }
+    },           
     {
         "type": "function",
         "function": {

@@ -278,6 +278,7 @@ def odoo_delete_record(external_model, record_id):
     except Exception as err:
         return {'error': f'Other error occurred: {err}'}
 
+
 def odoo_print_record(model_name, record_id):
     """
     Prints the specified record (subject to the record being printable).
@@ -317,5 +318,38 @@ def odoo_print_record(model_name, record_id):
         return {'error': f'HTTP error occurred: {http_err}'}
     except json.JSONDecodeError as json_err:
         return {'error': f'JSON decode error occurred: {json_err} - Response content: {response_data}'}
+    except Exception as err:
+        return {'error': f'Other error occurred: {err}'}
+
+
+def odoo_post_record(external_model, record_id):
+    """
+    Posts a record using the specified external model and record ID.
+    
+    Args:
+    - external_model (str): External model name.
+    - record_id (int): ID of the record to post.
+    
+    Returns:
+    - dict: Response containing the result of the post operation or error.
+    """
+    # Authenticate first
+    auth_result = authenticate(odoo_url, odoo_db, odoo_login, odoo_password)
+    if 'error' in auth_result:
+        return auth_result
+    
+    session_id = auth_result['session_id']
+    endpoint = f"{base_url}/api/{external_model}/post/{record_id}"
+    headers = {
+        'Content-Type': 'application/json',
+        'Cookie': f'session_id={session_id}'
+    }
+    
+    try:
+        response = requests.put(endpoint, headers=headers)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.HTTPError as http_err:
+        return {'error': f'HTTP error occurred: {http_err}'}
     except Exception as err:
         return {'error': f'Other error occurred: {err}'}
