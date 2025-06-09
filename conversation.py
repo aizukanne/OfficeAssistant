@@ -377,7 +377,7 @@ def make_openrouter_call(client, conversations):
         # Prepare the API call   
         response = client.chat.completions.create(
             temperature=ai_temperature,
-            model="qwen/qwen3-32b",
+            model="meta-llama/llama-4-scout",
             messages=conversations,
             max_tokens=5500,
             tools=cerebras_compatible_tools
