@@ -183,6 +183,7 @@ def lambda_handler(event, context):
     image_urls = []   
     has_image_urls = False
     relevant = 5
+    models = {}
 
     rl = RouteLayer.from_json("routes_layer.json")
     
@@ -287,7 +288,7 @@ def lambda_handler(event, context):
         if route_name == 'chitchat':
             summary_len = 0
             full_text_len = 2
-            relevant = 0
+            relevant = 2
             system_text = prompts['instruct_basic']
             assistant_text = ""
         elif route_name == 'writing':
@@ -324,6 +325,9 @@ def lambda_handler(event, context):
         msg_history_summary = [summarize_messages(msg_history)]
         #print(f"Message History Summary: {json.dumps(msg_history_summary, default=decimal_default)}")    
 
+        if route_name == 'odoo_erp': 
+            models = odoo_get_mapped_models()
+        
         if relevant > 0:
             # Set to empty lists rather than None when text is empty
             relevant_user_messages = get_relevant_messages(user_table, chat_id, text, relevant) if text else []
@@ -364,22 +368,22 @@ def lambda_handler(event, context):
             # Use audio conversation for audio inputs
             conversation = make_audio_conversation(system_text, assistant_text, display_name, 
                                                 all_relevant_messages, msg_history_summary, 
-                                                all_messages, text, audio_urls)
+                                                all_messages, text, models, audio_urls)
             # Use the audio-specific model
             response_message = make_openai_audio_call(client, conversation)
         elif image_urls or has_image_urls:
             # Keep the existing vision conversation path for images
             conversation = make_vision_conversation(system_text, assistant_text, display_name, 
                                                 all_relevant_messages, msg_history_summary, 
-                                                all_messages, text, image_urls)
+                                                all_messages, text, models, image_urls)
             response_message = make_openai_vision_call(client, conversation)
         else:
             if route_name == 'cerebras':
                 # Regular vision conversation for text-only
-                conversation = make_cerebras_conversation(system_text, assistant_text, display_name, all_relevant_messages, msg_history_summary, all_messages, text)
+                conversation = make_cerebras_conversation(system_text, assistant_text, display_name, all_relevant_messages, msg_history_summary, all_messages, text, models)
                 response_message = make_cerebras_call(conversation)
             else:
-                conversation = make_vision_conversation(system_text, assistant_text, display_name, all_relevant_messages, msg_history_summary, all_messages, text)
+                conversation = make_vision_conversation(system_text, assistant_text, display_name, all_relevant_messages, msg_history_summary, all_messages, text, models)
                 response_message = make_openai_vision_call(client, conversation)
 
     # Save the user's message to Database 
@@ -415,7 +419,7 @@ def lambda_handler(event, context):
                 # Use vision for image-based conversations
                 response_message = make_openai_vision_call(client, conversation_with_tool_responses)
             else:
-                if route_name == 'chitchat':
+                if route_name == 'cerebras':
                     response_message = make_cerebras_call(conversation_with_tool_responses)
                 else:
                     response_message = make_openai_vision_call(client, conversation_with_tool_responses)

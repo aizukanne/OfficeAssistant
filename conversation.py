@@ -71,7 +71,7 @@ def make_text_conversation(system_text, assistant_text, display_name, msg_histor
     return conversation 
 
 
-def make_vision_conversation(system_text, assistant_text, display_name, all_relevant_messages, msg_history_summary, all_messages, text, image_urls=None): 
+def make_vision_conversation(system_text, assistant_text, display_name, all_relevant_messages, msg_history_summary, all_messages, text, models, image_urls=None): 
     current_datetime = datetime.datetime.now(datetime.timezone.utc)
     datetime_msg = f"Today is {current_datetime.strftime('%A %d %B %Y')} and the time is {current_datetime.strftime('%I:%M %p')} GMT. Use this to accurately understand statements involving relative time, such as 'tomorrow', 'last week', last year or any other reference of time."
     
@@ -113,6 +113,16 @@ def make_vision_conversation(system_text, assistant_text, display_name, all_rele
             "content": content  
         })
 
+    if models:
+        conversation.append({
+            "role": "assistant",
+            "content": [{"type": "text", "text": "Next are the available models and fields from our Odoo ERP."}]
+        }) 
+        conversation.append({
+            "role": "assistant",
+            "content": [{"type": "text", "text": json.dumps(models, default=decimal_default)}]
+        })  
+
     conversation.append({
         "role": "assistant",
         "content": "All the previous messages are a trail of the message history to aid your understanding of the conversation. The next message is the current request from the user."
@@ -149,7 +159,7 @@ def make_vision_conversation(system_text, assistant_text, display_name, all_rele
     return conversation
 
 
-def make_audio_conversation(system_text, assistant_text, display_name, all_relevant_messages, msg_history_summary, all_messages, text, audio_urls=None):
+def make_audio_conversation(system_text, assistant_text, display_name, all_relevant_messages, msg_history_summary, all_messages, text, models, audio_urls=None):
     """
     Constructs the conversation payload for audio inputs by encoding audio files in base64.
     Accepts the same parameters as make_vision_conversation for consistency.
@@ -189,10 +199,20 @@ def make_audio_conversation(system_text, assistant_text, display_name, all_relev
             "content": content  
         })
 
+    if models:
+        conversation.append({
+            "role": "assistant",
+            "content": [{"type": "text", "text": "Next are the available models and fields from our Odoo ERP."}]
+        }) 
+        conversation.append({
+            "role": "assistant",
+            "content": [{"type": "text", "text": json.dumps(models, default=decimal_default)}]
+        })  
+
     conversation.append({
         "role": "assistant",
         "content": [{"type": "text", "text": "All the previous messages are a trail of the message history to aid your understanding of the conversation. The next message is the current request from the user."}]
-    })
+    })    
 
     conversation.append({
         "role": "assistant",
@@ -337,7 +357,7 @@ def make_openai_vision_call(client, conversations):
         # Prepare the API call   
         response = client.chat.completions.create(
             temperature=ai_temperature,
-            model="gpt-4o-2024-11-20",
+            model="gpt-4.1-2025-04-14",
             messages=conversations,
             max_tokens=5500,
             tools=tools
@@ -383,7 +403,7 @@ def ask_openai_o1(prompt):
     try:
         # Prepare the API call   
         response = client.chat.completions.create(
-            model="o1",
+            model="o3-mini-2025-01-31",
             messages=message
         )
         print(f'OpenAI o1: {response}')

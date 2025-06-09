@@ -1,5 +1,6 @@
 import requests
 import json
+import urllib.parse
 import urllib.request
 import urllib.error
 from botocore.exceptions import ClientError
@@ -339,14 +340,17 @@ def odoo_post_record(external_model, record_id):
         return auth_result
     
     session_id = auth_result['session_id']
-    endpoint = f"{base_url}/api/{external_model}/post/{record_id}"
+    # Properly encode the external_model for URL
+    encoded_model = urllib.parse.quote(external_model, safe='')
+    endpoint = f"{base_url}/api/{encoded_model}/post/{record_id}"
     headers = {
         'Content-Type': 'application/json',
         'Cookie': f'session_id={session_id}'
     }
     
     try:
-        response = requests.put(endpoint, headers=headers)
+        # Include an empty JSON payload for the PUT request
+        response = requests.put(endpoint, headers=headers, json={})
         response.raise_for_status()
         return response.json()
     except requests.exceptions.HTTPError as http_err:
