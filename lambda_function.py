@@ -54,6 +54,12 @@ from weaviate.classes.query import Sort
 from xml.etree import ElementTree
 
 from config import *  # Import all configuration variables
+from parallel_utils import ParallelExecutor, time_operation, time_operation_with_metrics, log_performance_data
+from parallel_storage import (
+    get_message_history_parallel,
+    get_relevant_messages_parallel,
+    parallel_preprocessing
+)
 from extservices import get_coordinates
 from extservices import get_weather_data
 from nltk.tokenize import sent_tokenize, word_tokenize
@@ -165,8 +171,9 @@ weaviate_client = weaviate.connect_to_weaviate_cloud(
     headers = headers
 )
 
+@time_operation_with_metrics("lambda_handler_total")
 def lambda_handler(event, context):
-    print(f"Event: {event}") 
+    print(f"Event: {event}")
     
     global stopwords
     global chat_id
@@ -311,42 +318,44 @@ def lambda_handler(event, context):
 
         num_messages = summary_len + full_text_len  # or any other number you prefer
 
-        # Extract and combine message history 
-        user_msg_history, user_messages = (lambda x: (x[full_text_len:], x[:full_text_len]))(get_last_messages_weaviate(user_table, chat_id, num_messages))
-        #print(json.dumps(user_messages, default=decimal_default))
-    
-        asst_msg_history, assistant_messages = (lambda x: (x[full_text_len:], x[:full_text_len]))(get_last_messages_weaviate(assistant_table, chat_id, num_messages))
-        #print(json.dumps(asst_msg_history, default=decimal_default))   
-    
-        msg_history = user_msg_history + asst_msg_history
-        msg_history.sort(key=lambda x: x['sort_key'])
-        #print(json.dumps(msg_history, default=decimal_default))  
+        # Log start of parallel processing
+        parallel_start_time = time.time()
         
-        msg_history_summary = [summarize_messages(msg_history)]
-        #print(f"Message History Summary: {json.dumps(msg_history_summary, default=decimal_default)}")    
-
-        if route_name == 'odoo_erp': 
-            models = odoo_get_mapped_models()
+        # PARALLEL EXECUTION PHASE 1: Message History & Initial Processing
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+            # Submit parallel tasks
+            history_future = executor.submit(
+                get_message_history_parallel,
+                chat_id, num_messages, full_text_len
+            )
+            
+            # Prepare preprocessing parameters
+            enable_odoo = route_name == 'odoo_erp'
+            
+            preprocess_future = executor.submit(
+                parallel_preprocessing,
+                chat_id, text, route_name, relevant, enable_odoo
+            )
+            
+            # Get results
+            msg_history, all_messages, user_messages, assistant_messages = history_future.result()
+            preprocess_results = preprocess_future.result()
         
-        if relevant > 0:
-            # Set to empty lists rather than None when text is empty
-            relevant_user_messages = get_relevant_messages(user_table, chat_id, text, relevant) if text else []
-            relevant_assistant_messages = get_relevant_messages(assistant_table, chat_id, text, relevant) if text else []
-        else:
-            relevant_user_messages = []
-            relevant_assistant_messages = []
-
-        # Combine and sort relevant messages from user and assistant by sort_key
-        all_relevant_messages = relevant_user_messages + relevant_assistant_messages
-        all_relevant_messages.sort(key=lambda x: x['sort_key'])
+        # Log parallel processing time
+        parallel_duration = (time.time() - parallel_start_time) * 1000
+        log_performance_data("parallel_processing_phase1", parallel_duration, {
+            "route": route_name,
+            "chat_id": chat_id,
+            "num_messages": num_messages
+        })
         
-        # Combine and sort messages from user and assistant by sort_key
-        all_messages = user_messages + assistant_messages
-        all_messages.sort(key=lambda x: x['sort_key'])
-        #print(json.dumps(all_messages, default=decimal_default))  
+        # Extract preprocessing results
+        maria_muted = preprocess_results.get('mute_status', [False])[0] if preprocess_results.get('mute_status') else False
+        models = preprocess_results.get('odoo_models', {})
+        all_relevant_messages = preprocess_results.get('relevant_messages', [])
         
+        # Handle mute status
         try:
-            maria_muted = manage_mute_status(chat_id)[0]
             match_id = re.search(r"<@(\w+)>", text)
             mentioned_user_id = match_id.group(1) if match_id else None
             print(f"Maria muted: {maria_muted}")
@@ -356,11 +365,15 @@ def lambda_handler(event, context):
                 save_message(meetings_table, chat_id, text, "user", thread_ts, image_urls)
                 return  # Exit the function after saving the message
         except Exception as e:
-            print(f"An unexpected error occurred: {e}")            
+            print(f"An unexpected error occurred: {e}")
         
-        # Check if image_urls exists
+        # Summarize message history
+        msg_history_summary = [summarize_messages(msg_history)]
+        
+        # Find image URLs
         has_image_urls, all_image_urls = find_image_urls(all_messages)
-
+        
+        # PII detection if enabled
         if enable_pii:
             text = detect_pii(text)
 
