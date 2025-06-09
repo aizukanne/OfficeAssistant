@@ -60,6 +60,11 @@ from parallel_storage import (
     get_relevant_messages_parallel,
     parallel_preprocessing
 )
+from storage_pooled import init_weaviate_pool, get_pool_statistics
+
+# Initialize Weaviate connection pool at module level
+print("Initializing Weaviate connection pool...")
+init_weaviate_pool(pool_size=5, max_overflow=2)
 from extservices import get_coordinates
 from extservices import get_weather_data
 from nltk.tokenize import sent_tokenize, word_tokenize
@@ -174,6 +179,14 @@ weaviate_client = weaviate.connect_to_weaviate_cloud(
 @time_operation_with_metrics("lambda_handler_total")
 def lambda_handler(event, context):
     print(f"Event: {event}")
+    
+    # Periodically log connection pool statistics (10% of invocations)
+    if random.random() < 0.1:
+        try:
+            pool_stats = get_pool_statistics()
+            print(f"Weaviate connection pool stats: {json.dumps(pool_stats)}")
+        except Exception as e:
+            print(f"Error getting pool stats: {e}")
     
     global stopwords
     global chat_id

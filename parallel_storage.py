@@ -1,12 +1,25 @@
 """
 Parallel implementations of storage functions for improved performance.
 This module provides parallelized versions of message retrieval and search functions.
+Now enhanced with connection pooling support for better resource utilization.
 """
 
 from typing import List, Dict, Any, Tuple, Optional
 from parallel_utils import ParallelExecutor, time_operation, time_operation_with_metrics
-from storage import get_last_messages_weaviate, get_relevant_messages, transform_objects
+from storage import transform_objects
+from storage_pooled import (
+    get_last_messages_weaviate_pooled,
+    get_relevant_messages_pooled,
+    init_weaviate_pool
+)
 from config import user_table, assistant_table
+
+# Initialize the connection pool
+init_weaviate_pool(pool_size=5, max_overflow=2)
+
+# Use pooled versions for better performance
+get_last_messages_weaviate = get_last_messages_weaviate_pooled
+get_relevant_messages = get_relevant_messages_pooled
 
 
 @time_operation("parallel_message_history")
