@@ -13,6 +13,7 @@ google_api_key = os.getenv('GOOGLE_API_KEY')
 erpnext_api_key = os.getenv('ERPNEXT_API_KEY') 
 erpnext_api_secret = os.getenv('ERPNEXT_API_SECRET') 
 openai_api_key = os.getenv('OPENAI_API_KEY')
+openrouter_api_key = os.getenv('OPENROUTER_API_KEY')
 slack_bot_token = os.getenv('SLACK_BOT_TOKEN')
 telegram_bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
 weaviate_api_key = os.getenv('WEAVIATE_API_KEY')
@@ -75,6 +76,12 @@ docs_bucket_name = 'mariadocsfolder-us'
 # Initialize OpenAI client
 client = openai.OpenAI(
     api_key = os.getenv('OPENAI_API_KEY')
+)
+
+# Initialize OpenRouter client
+openrouter_client = openai.OpenAI(
+    base_url="https://openrouter.ai/api/v1",
+    api_key = os.getenv('OPENROUTER_API_KEY')
 )
 
 # Initialize encoder

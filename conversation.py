@@ -7,7 +7,7 @@ import logging
 import requests
 from typing import List, Dict, Any, Optional
 
-from config import client, cerebras_api_key, ai_temperature, slack_bot_token
+from config import client, openrouter_client, cerebras_api_key, ai_temperature, slack_bot_token
 from tools import tools  # Import tools from tools.py
 from storage import decimal_default
 
@@ -361,6 +361,26 @@ def make_openai_vision_call(client, conversations):
             messages=conversations,
             max_tokens=5500,
             tools=tools
+        )
+        print(response)
+        return response.choices[0].message
+    except Exception as e:
+        print(f"An error occurred during the OpenAI Vision API call: {e}")
+        return None
+
+
+def make_openrouter_call(client, conversations):
+    cerebras_tools = select_cerebras_tools(tools)
+    cerebras_compatible_tools = ensure_object_properties(convert_tools_for_cerebras(cerebras_tools))
+
+    try:
+        # Prepare the API call   
+        response = client.chat.completions.create(
+            temperature=ai_temperature,
+            model="qwen/qwen3-32b",
+            messages=conversations,
+            max_tokens=5500,
+            tools=cerebras_compatible_tools
         )
         print(response)
         return response.choices[0].message

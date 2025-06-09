@@ -71,7 +71,7 @@ from nltk.tokenize import sent_tokenize, word_tokenize
 
 from conversation import (
     make_text_conversation, make_vision_conversation, make_audio_conversation, make_cerebras_conversation,
-    make_openai_vision_call, make_openai_audio_call, ask_openai_o1, make_cerebras_call,
+    make_openai_vision_call, make_openai_audio_call, ask_openai_o1, make_openrouter_call,
     serialize_chat_completion_message, handle_message_content, handle_tool_calls
 )
 
@@ -324,6 +324,7 @@ def lambda_handler(event, context):
             relevant = 0
             ai_temperature = 0.1   
         else:
+            route_name = 'chitchat'
             system_text = prompts['system_text']
             assistant_text = prompts['assistant_text'] + " " + prompts['odoo_search'] + " " + prompts['instruct_Context_Clarification'] + " " + prompts['instruct_chain_of_thought']
             summary_len = 10
@@ -404,10 +405,10 @@ def lambda_handler(event, context):
                                                 all_messages, text, models, image_urls)
             response_message = make_openai_vision_call(client, conversation)
         else:
-            if route_name == 'cerebras':
+            if route_name == 'chitchat':
                 # Regular vision conversation for text-only
                 conversation = make_cerebras_conversation(system_text, assistant_text, display_name, all_relevant_messages, msg_history_summary, all_messages, text, models)
-                response_message = make_cerebras_call(conversation)
+                response_message = make_openrouter_call(openrouter_client, conversation)
             else:
                 conversation = make_vision_conversation(system_text, assistant_text, display_name, all_relevant_messages, msg_history_summary, all_messages, text, models)
                 response_message = make_openai_vision_call(client, conversation)
@@ -445,13 +446,14 @@ def lambda_handler(event, context):
                 # Use vision for image-based conversations
                 response_message = make_openai_vision_call(client, conversation_with_tool_responses)
             else:
-                if route_name == 'cerebras':
-                    response_message = make_cerebras_call(conversation_with_tool_responses)
+                if route_name == 'chitchat':
+                    response_message = make_openrouter_call(openrouter_client, conversation_with_tool_responses)
                 else:
                     response_message = make_openai_vision_call(client, conversation_with_tool_responses)
         else:
             weaviate_client.close()
             break  # Exit the loop if there are no tool calls
+
 
 # Function to convert non-serializable types for JSON serialization  
 def decimal_default(obj):
@@ -547,7 +549,7 @@ def google_search(search_term, before=None, after=None, intext=None, allintext=N
     search_url = f"https://www.googleapis.com/customsearch/v1?q={url_encoded_search_term}&cx={custom_search_id}&key={custom_search_api_key}"
     response = requests.get(search_url)
     results = response.json().get('items', [])
-    print(json.dumps(results, default=decimal_default))
+    #print(json.dumps(results, default=decimal_default))
 
     web_links = []
     for result in results:
@@ -555,14 +557,14 @@ def google_search(search_term, before=None, after=None, intext=None, allintext=N
     
     # Assuming get_web_pages is a coroutine to fetch web pages 
     web_content = asyncio.run(get_web_pages(web_links[:5]))
-    print(json.dumps(web_content, default=decimal_default))  # Assuming decimal_default was a function for JSON serializing decimals   
+    #print(json.dumps(web_content, default=decimal_default))  # Assuming decimal_default was a function for JSON serializing decimals   
     
     return web_content
 
 
 def browse_internet(urls, full_text=False):
     web_pages = asyncio.run(get_web_pages(urls, full_text))
-    print(web_pages)
+    #print(web_pages)
     return web_pages
 
 
@@ -574,7 +576,7 @@ async def get_web_pages(urls, full_text=False, max_concurrent_requests=5):
         
         # Flatten the list of results
         flattened_results = [item for sublist in results for item in sublist]
-        print(json.dumps(flattened_results))
+        #print(json.dumps(flattened_results))
         
         return flattened_results
 
