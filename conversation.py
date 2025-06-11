@@ -91,9 +91,19 @@ def make_vision_conversation(system_text, assistant_text, display_name, all_rele
         "content": [{"type": "text", "text": json.dumps(all_relevant_messages, default=decimal_default)}]
     })
 
+    conversation.append({
+        "role": "assistant",
+        "content": [{"type": "text", "text": "Here are the previous messages in the message history of this conversation to provide context and aid your understanding."}]
+    })
+
     conversation.append({ 
         "role": "assistant", 
         "content": [{"type": "text", "text": json.dumps(msg_history_summary, default=decimal_default)}]
+    })
+
+    conversation.append({
+        "role": "assistant",
+        "content": [{"type": "text", "text": "The next message is the current request from the user."}]
     })
 
     # Add them to the conversation array  
@@ -122,11 +132,6 @@ def make_vision_conversation(system_text, assistant_text, display_name, all_rele
             "role": "assistant",
             "content": [{"type": "text", "text": json.dumps(models, default=decimal_default)}]
         })  
-
-    conversation.append({
-        "role": "assistant",
-        "content": "All the previous messages are a trail of the message history to aid your understanding of the conversation. The next message is the current request from the user."
-    })
 
     conversation.append({
         "role": "assistant",

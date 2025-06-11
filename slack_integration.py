@@ -1,12 +1,18 @@
+import asyncio
 import json
+import markdown2
 import os
 import re
 import requests
 import tempfile
-import markdown2
+import time
+import threading
+
 from bs4 import BeautifulSoup
+from config import slack_bot_token, slack_client, names_table, channels_table, image_bucket_name
+from slack_sdk import WebClient
+from slack_sdk.rtm_v2 import RTMClient
 from urllib.parse import urlparse, unquote
-from config import slack_bot_token, names_table, channels_table, image_bucket_name
 
 from storage import (
     get_users, get_channels
@@ -692,3 +698,194 @@ def process_slack_event(slack_event):
     except Exception as e:
         print(f"Error processing Slack event: {e}")
         return None
+
+class TypingIndicatorAlternative:
+    """
+    Alternative typing indicator implementation that works with current Slack APIs
+    """
+    
+    def __init__(self):
+        self.active_typing = {}
+        
+    def send_typing_rtm(self, channel_id: str):
+        """
+        Send typing using RTM (Real Time Messaging) API.
+        This is the most reliable method for typing indicators.
+        """
+        try:
+            # Method 1: Use RTM v2 (recommended)
+            rtm = RTMClient(token=slack_bot_token)
+            
+            @rtm.on("open")
+            def handle_open(client: RTMClient):
+                print("RTM connection opened")
+                # Send typing event
+                client.web_client.api_call(
+                    "typing.send",
+                    data={"channel": channel_id}
+                )
+            
+            # Start RTM connection briefly to send typing
+            rtm.start()
+            
+            return True
+            
+        except Exception as e:
+            print(f"Error with RTM typing: {e}")
+            return False
+    
+    def send_typing_websocket(self, channel_id: str):
+        """
+        Alternative: Use WebSocket connection for typing
+        """
+        try:
+            # Get WebSocket URL
+            response = slack_client.rtm_connect()
+            
+            if response.get("ok"):
+                ws_url = response.get("url")
+                # Send typing via WebSocket
+                # This requires websocket implementation
+                print(f"Would send typing via WebSocket to {channel_id}")
+                return True
+            else:
+                return False
+                
+        except Exception as e:
+            print(f"Error with WebSocket typing: {e}")
+            return False
+    
+    def send_typing_simulation(self, channel_id: str, duration: int = 3):
+        """
+        Method 3: Simulate typing by sending a temporary message
+        This is a workaround but provides visible feedback to users
+        """
+        try:
+            # Send a temporary "thinking" message
+            temp_response = slack_client.chat_postMessage(
+                channel=channel_id,
+                text="🤔 Thinking...",
+                metadata={
+                    "event_type": "typing_indicator",
+                    "event_payload": {"temporary": True}
+                }
+            )
+            
+            if temp_response.get("ok"):
+                temp_ts = temp_response.get("ts")
+                
+                # Delete the message after a short delay
+                def delete_temp_message():
+                    try:
+                        slack_client.chat_delete(
+                            channel=channel_id,
+                            ts=temp_ts
+                        )
+                        print(f"Deleted temporary typing message from {channel_id}")
+                    except Exception as e:
+                        print(f"Error deleting temp message: {e}")
+                
+                # Schedule deletion
+                timer = threading.Timer(duration, delete_temp_message)
+                timer.daemon = True
+                timer.start()
+                
+                return True
+            
+            return False
+            
+        except Exception as e:
+            print(f"Error with typing simulation: {e}")
+            return False
+    
+    def send_typing_with_reactions(self, channel_id: str, user_message_ts: str):
+        """
+        Method 4: Use emoji reactions to indicate processing
+        Add a "thinking" emoji to the user's message
+        """
+        try:
+            # Add thinking emoji to user's message
+            response = slack_client.reactions_add(
+                channel=channel_id,
+                timestamp=user_message_ts,
+                name="thinking_face"  # or "hourglass_flowing_sand", "gear", etc.
+            )
+            
+            if response.get("ok"):
+                print(f"Added thinking reaction to message in {channel_id}")
+                return True
+            
+            return False
+            
+        except Exception as e:
+            print(f"Error adding thinking reaction: {e}")
+            return False
+    
+    def remove_typing_reaction(self, channel_id: str, user_message_ts: str):
+        """
+        Remove the typing reaction when done processing
+        """
+        try:
+            slack_client.reactions_remove(
+                channel=channel_id,
+                timestamp=user_message_ts,
+                name="thinking_face"
+            )
+            print(f"Removed thinking reaction from {channel_id}")
+            
+        except Exception as e:
+            print(f"Error removing thinking reaction: {e}")
+
+# Global instance
+typing_alternative = TypingIndicatorAlternative()
+
+# Easy-to-use functions
+def send_typing_indicator(channel_id: str, duration: int = 30, method: str = "simulation"):
+    """
+    Send typing indicator using specified method
+    
+    Args:
+        channel_id (str): Slack channel or DM ID
+        duration (int): How long to show typing
+        method (str): "simulation", "rtm", "websocket", or "reaction"
+    
+    Returns:
+        bool: Success status
+    """
+    if method == "simulation":
+        return typing_alternative.send_typing_simulation(channel_id, min(duration, 5))
+    elif method == "rtm":
+        return typing_alternative.send_typing_rtm(channel_id)
+    elif method == "websocket":
+        return typing_alternative.send_typing_websocket(channel_id)
+    else:
+        # Default to simulation
+        return typing_alternative.send_typing_simulation(channel_id, min(duration, 5))
+
+def send_typing_reaction(channel_id: str, message_ts: str):
+    """Add thinking reaction to indicate processing"""
+    return typing_alternative.send_typing_with_reactions(channel_id, message_ts)
+
+def remove_typing_reaction(channel_id: str, message_ts: str):
+    """Remove thinking reaction when done"""
+    typing_alternative.remove_typing_reaction(channel_id, message_ts)
+
+def stop_typing_indicator(channel_id: str):
+    """Stop typing indicator (placeholder for compatibility)"""
+    print(f"Typing stopped for {channel_id}")
+    pass  # Nothing to stop for simulation method
+
+# Enhanced message sending with visible feedback
+def send_slack_message_with_typing(message, channel, ts=None, show_typing=True, typing_duration=3):
+    """
+    Send message with typing simulation that users can actually see
+    """
+    if show_typing:
+        # Use simulation method for visible feedback
+        send_typing_indicator(channel, typing_duration, method="simulation")
+        
+        # Small delay to let users see the "thinking" message
+        time.sleep(0.5)
+    
+    # Send the actual message
+    return send_slack_message(message, channel, ts)

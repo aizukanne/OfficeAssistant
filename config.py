@@ -4,6 +4,7 @@ import openai
 import weaviate
 from weaviate.classes.init import Auth
 from semantic_router.encoders import OpenAIEncoder
+from slack_sdk import WebClient
 
 # Initialize API keys from environment variables
 calendar_id = os.getenv('GOOGLE_CALENDAR_ID')
@@ -29,6 +30,9 @@ odoo_url = "http://167.71.140.93:8069"
 odoo_db = "Production"
 odoo_login = "ai_bot"
 odoo_password = "Carbon123#"
+
+# Initialize Slack client
+slack_client = WebClient(token=slack_bot_token)
 
 # Proxy configuration
 proxy_url = "http://aizukanne3:Ng8qM7DCChitRRuGDusL_country-US,CA@core-residential.evomi.com:1000"

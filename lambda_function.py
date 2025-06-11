@@ -89,7 +89,8 @@ from nlp_utils import (
 from slack_integration import (
     send_slack_message, send_audio_to_slack, send_file_to_slack,
     get_slack_user_name, update_slack_users, update_slack_conversations,
-    find_image_urls, latex_to_slack, message_to_json, process_slack_event
+    find_image_urls, latex_to_slack, message_to_json, process_slack_event,
+    send_typing_indicator
 )
 
 from storage import (
@@ -175,6 +176,7 @@ weaviate_client = weaviate.connect_to_weaviate_cloud(
     auth_credentials=Auth.api_key(weaviate_api_key),
     headers = headers
 )
+
 
 @time_operation_with_metrics("lambda_handler_total")
 def lambda_handler(event, context):
@@ -263,11 +265,17 @@ def lambda_handler(event, context):
         
         # Extract processed parameters
         chat_id = processed_data['chat_id']
+        thread_ts = processed_data['thread_ts']
+
+        # REFRESH TYPING INDICATOR - since we're in the backend now
+        if source == 'slack':
+            print(f"Starting typing indication for channel {chat_id}") 
+            send_typing_indicator(chat_id, duration=60, method="simulation")
+
         user_id = processed_data['user_id']
         user_name = processed_data['user_name']
         display_name = processed_data['display_name']
         text = processed_data['text']
-        thread_ts = processed_data['thread_ts']
         image_urls = processed_data['image_urls']
         audio_urls = processed_data['audio_urls']
         audio_text = processed_data['audio_text']
@@ -324,7 +332,6 @@ def lambda_handler(event, context):
             relevant = 0
             ai_temperature = 0.1   
         else:
-            route_name = 'chitchat'
             system_text = prompts['system_text']
             assistant_text = prompts['assistant_text'] + " " + prompts['odoo_search'] + " " + prompts['instruct_Context_Clarification'] + " " + prompts['instruct_chain_of_thought']
             summary_len = 10
@@ -435,6 +442,10 @@ def lambda_handler(event, context):
 
         # Check and process tool calls
         if has_tool_calls:
+            # REFRESH TYPING for tool processing
+            if source == 'slack' and chat_id:
+                send_typing_indicator(chat_id, duration=20)
+
             conversation_with_tool_responses = handle_tool_calls(
                 response_message, available_functions, chat_id, conversation, thread_ts
             )
@@ -451,6 +462,7 @@ def lambda_handler(event, context):
                 else:
                     response_message = make_openai_vision_call(client, conversation_with_tool_responses)
         else:
+
             weaviate_client.close()
             break  # Exit the loop if there are no tool calls
 
@@ -549,7 +561,7 @@ def google_search(search_term, before=None, after=None, intext=None, allintext=N
     search_url = f"https://www.googleapis.com/customsearch/v1?q={url_encoded_search_term}&cx={custom_search_id}&key={custom_search_api_key}"
     response = requests.get(search_url)
     results = response.json().get('items', [])
-    #print(json.dumps(results, default=decimal_default))
+    print(json.dumps(results, default=decimal_default))
 
     web_links = []
     for result in results:
@@ -557,51 +569,128 @@ def google_search(search_term, before=None, after=None, intext=None, allintext=N
     
     # Assuming get_web_pages is a coroutine to fetch web pages 
     web_content = asyncio.run(get_web_pages(web_links[:5]))
-    #print(json.dumps(web_content, default=decimal_default))  # Assuming decimal_default was a function for JSON serializing decimals   
+    print(json.dumps(web_content, default=decimal_default))  # Assuming decimal_default was a function for JSON serializing decimals   
     
     return web_content
 
 
 def browse_internet(urls, full_text=False):
-    web_pages = asyncio.run(get_web_pages(urls, full_text))
-    #print(web_pages)
-    return web_pages
+    try:
+        # Suppress resource warnings in Lambda environment
+        import warnings
+        warnings.filterwarnings("ignore", category=ResourceWarning)
+        
+        web_pages = asyncio.run(get_web_pages(urls, full_text))
+        #print(web_pages)
+        return web_pages
+    except asyncio.TimeoutError:
+        logging.error(f"Timeout error in browse_internet for URLs: {urls}")
+        return [{
+            "type": "text",
+            "text": {
+                'error': 'Request timed out while fetching web pages',
+                'urls': urls
+            }
+        }]
+    except Exception as e:
+        logging.error(f"Error in browse_internet: {e}")
+        return [{
+            "type": "text",
+            "text": {
+                'error': f'Failed to fetch web pages: {str(e)}',
+                'urls': urls
+            }
+        }]
 
 
 async def get_web_pages(urls, full_text=False, max_concurrent_requests=5):
-    async with aiohttp.ClientSession() as session:
-        semaphore = asyncio.Semaphore(max_concurrent_requests)
-        tasks = [process_page(session, url, semaphore, full_text) for url in urls]
-        results = await asyncio.gather(*tasks)
+    try:
+        # Configure connector with explicit settings to prevent resource warnings
+        connector = aiohttp.TCPConnector(
+            limit=max_concurrent_requests,
+            limit_per_host=2,
+            force_close=True,  # Force close connections to prevent warnings
+            enable_cleanup_closed=True  # Clean up closed connections immediately
+        )
         
-        # Flatten the list of results
-        flattened_results = [item for sublist in results for item in sublist]
-        #print(json.dumps(flattened_results))
-        
-        return flattened_results
+        async with aiohttp.ClientSession(connector=connector) as session:
+            semaphore = asyncio.Semaphore(max_concurrent_requests)
+            tasks = [process_page(session, url, semaphore, full_text) for url in urls]
+            # Use return_exceptions=True to prevent gather from raising exceptions
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            
+            # Process results and handle any exceptions
+            flattened_results = []
+            for i, result in enumerate(results):
+                if isinstance(result, Exception):
+                    logging.error(f"Error processing URL {urls[i]}: {result}")
+                    flattened_results.append({
+                        "type": "text",
+                        "text": {
+                            'url': urls[i],
+                            'error': f'Failed to process page: {str(result)}'
+                        }
+                    })
+                else:
+                    flattened_results.extend(result)
+            
+            #print(json.dumps(flattened_results))
+            return flattened_results
+    except Exception as e:
+        logging.error(f"Error in get_web_pages: {e}")
+        # Return error responses for all URLs
+        return [{
+            "type": "text",
+            "text": {
+                'url': url,
+                'error': f'Failed to fetch pages: {str(e)}'
+            }
+        } for url in urls]
+    finally:
+        # Ensure connector is closed even if session context manager doesn't run
+        if 'connector' in locals():
+            await connector.close()
 
 
 async def fetch_page(session, url, timeout=30):
     headers = {
         'User-Agent': random.choice(USER_AGENTS)
-    }    
+    }
+    
+    # Create timeout object for both connection and read
+    timeout_obj = aiohttp.ClientTimeout(total=timeout, connect=10, sock_read=timeout)
+    
     try:
-        async with session.get(url, headers=headers, proxy=proxy_url, timeout=timeout) as response:
+        async with session.get(url, headers=headers, proxy=proxy_url, timeout=timeout_obj) as response:
             #print(f"Search Result: {response}")
             content_type = response.headers.get('Content-Type', '')
             if 'text' in content_type:
                 encoding = response.charset or 'utf-8'
-                return await response.text(encoding=encoding)
+                content = await response.text(encoding=encoding)
+                # Explicitly release the connection
+                response.release()
+                return content
             elif 'application/pdf' in content_type or 'application/msword' in content_type or 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' in content_type:
-                return await response.read(), content_type
+                content = await response.read()
+                # Explicitly release the connection
+                response.release()
+                return content, content_type
             else:
+                # Explicitly release the connection for non-text content
+                response.release()
                 return None, content_type
     except asyncio.TimeoutError:
-        print(f"Timeout error: {url} took too long to respond.")
+        logging.error(f"Timeout error: {url} took too long to respond.")
         return f"Timeout error: {url} took too long to respond.", None
-    except ClientConnectorSSLError:
-        print(f"SSL handshake error: Failed to connect to {url}")
-        return f"SSL handshake error: Failed to connect to {url}", None 
+    except ClientConnectorSSLError as e:
+        logging.error(f"SSL handshake error: Failed to connect to {url} - {e}")
+        return f"SSL handshake error: Failed to connect to {url}", None
+    except aiohttp.ClientError as e:
+        logging.error(f"Client error fetching {url}: {e}")
+        return f"Client error: {str(e)}", None
+    except Exception as e:
+        logging.error(f"Unexpected error fetching {url}: {e}")
+        return f"Unexpected error: {str(e)}", None
 
 async def process_page(session, url, semaphore, full_text=False):
     async with semaphore:
@@ -609,6 +698,7 @@ async def process_page(session, url, semaphore, full_text=False):
             result = await fetch_page(session, url)
         except ClientError as e:
             logging.error(f"Client error occurred while fetching the page: {e}")
+            print(f"Client error occurred while fetching {url}: {e}")
             return [{
                 "type": "text",
                 "text": {
@@ -618,6 +708,7 @@ async def process_page(session, url, semaphore, full_text=False):
             }]
         except Exception as e:
             logging.error(f"Unexpected error occurred: {e}")
+            print(f"Unexpected error occurred while fetching {url}: {e}")
             return [{
                 "type": "text",
                 "text": {
@@ -645,6 +736,7 @@ async def process_page(session, url, semaphore, full_text=False):
                         })
                     except Exception as e:
                         logging.error(f"Failed to upload document to S3: {e}")
+                        print(f"Failed to upload document to S3 for {url}: {e}")
                         response_list.append({
                             "type": "text",
                             "text": {
@@ -675,6 +767,7 @@ async def process_page(session, url, semaphore, full_text=False):
                         summary_or_full_text = rank_sentences(cleaned_text, stopwords, max_sentences=50)  # Placeholder for the rank_sentences function
                     except Exception as e:
                         logging.error(f"Failed to rank sentences: {e}")
+                        print(f"Failed to rank sentences for {url}: {e}")
                         summary_or_full_text = cleaned_text  # Fallback to full text if ranking fails
 
                 author = soup.find('meta', {'name': 'author'})['content'] if soup.find('meta', {'name': 'author'}) else 'Unknown'
@@ -705,7 +798,9 @@ async def process_page(session, url, semaphore, full_text=False):
                             img_url = urljoin(url, img_url)
                         
                         try:
-                            async with session.head(img_url) as img_response:
+                            # Use a short timeout for HEAD requests
+                            head_timeout = aiohttp.ClientTimeout(total=5, connect=2)
+                            async with session.head(img_url, timeout=head_timeout) as img_response:
                                 if img_response.status == 200 and int(img_response.headers.get('Content-Length', 0)) > 10240:
                                     response_list.append({
                                         "type": "image_url",
@@ -713,10 +808,17 @@ async def process_page(session, url, semaphore, full_text=False):
                                             'url': img_url
                                         }
                                     })
+                                # Explicitly release the connection
+                                img_response.release()
+                        except asyncio.TimeoutError:
+                            # Silently skip images that timeout - not critical
+                            pass
                         except ClientError as e:
                             logging.error(f"Failed to fetch image: {img_url} - ClientError: {e}")
+                            print(f"Failed to fetch image {img_url}: ClientError - {e}")
                         except Exception as e:
                             logging.error(f"Failed to fetch image: {img_url} - Unexpected error: {e}")
+                            print(f"Failed to fetch image {img_url}: Unexpected error - {e}")
             else:
                 response_list.append({
                     "type": "text",
@@ -727,6 +829,7 @@ async def process_page(session, url, semaphore, full_text=False):
                 })
         except Exception as e:
             logging.error(f"Error processing page: {e}")
+            print(f"Error processing page {url}: {e}")
             response_list.append({
                 "type": "text",
                 "text": {
