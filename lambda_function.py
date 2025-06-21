@@ -78,7 +78,7 @@ from conversation import (
 from media_processing import (
     text_to_speech, upload_image_to_s3, transcribe_speech_from_memory,
     download_audio_to_memory, process_url, transcribe_multiple_urls,
-    convert_to_wav_in_memory
+    convert_to_wav_in_memory, has_proper_sentences
 )
 
 from nlp_utils import (
@@ -208,8 +208,13 @@ def lambda_handler(event, context):
     models = {}
 
     rl = RouteLayer.from_json("routes_layer.json")
+
+    # Get route (common processing)
+    route_name = ""    
+    
     
     if 'Records' in event and isinstance(event['Records'], list):
+        source = "email"
         payload = event['Records'][0]['body']
         body_str = json.loads(payload)['payload']['event']
         event_type = body_str['type']
@@ -295,8 +300,6 @@ def lambda_handler(event, context):
             text += f" {files_json}"
             print(f"Added application files to text: {len(application_files)} files")
         
-        # Get route (common processing)
-        route_name = ""
         if text:
             try:
                 route_choice = rl(text)
@@ -490,7 +493,6 @@ def get_embedding(text, model="text-embedding-ada-002"):
     text_cleaned = text.replace("\n", " ")
     embedding = client.embeddings.create(input=[text_cleaned], model=model).data[0].embedding
     return {"text": text_cleaned, "embedding": embedding}
-    
     
 
 def send_to_sqs(data, queue_url):
@@ -761,10 +763,16 @@ async def process_page(session, url, semaphore, full_text=False):
                 cleaned_text = clean_website_data(text)
 
                 if full_text:
-                    summary_or_full_text = rank_sentences(cleaned_text, stopwords, max_sentences=150)  # Placeholder for the rank_sentences function
+                    if has_proper_sentences(cleaned_text):
+                        summary_or_full_text = rank_sentences(cleaned_text, stopwords, max_sentences=150)  
+                    else:
+                        summary_or_full_text = cleaned_text
                 else:
                     try:
-                        summary_or_full_text = rank_sentences(cleaned_text, stopwords, max_sentences=50)  # Placeholder for the rank_sentences function
+                        if has_proper_sentences(cleaned_text):
+                            summary_or_full_text = rank_sentences(cleaned_text, stopwords, max_sentences=50) 
+                        else:
+                            summary_or_full_text = cleaned_text
                     except Exception as e:
                         logging.error(f"Failed to rank sentences: {e}")
                         print(f"Failed to rank sentences for {url}: {e}")

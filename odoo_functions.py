@@ -4,6 +4,7 @@ import urllib.parse
 import urllib.request
 import urllib.error
 from botocore.exceptions import ClientError
+from url_shortener import URLShortener, shorten_url
 
 odoo_url = "http://167.71.140.93:8069"
 odoo_db = "Production"
@@ -314,7 +315,13 @@ def odoo_print_record(model_name, record_id):
         with urllib.request.urlopen(req) as resp:
             response_data = resp.read().decode()
             print(f"Response content: {response_data}")  # Log response content for debugging
-            return json.loads(response_data)
+            response_data = json.loads(response_data)
+            full_url = response_data["result"]["download_url"]
+            print(f'Full Url: {full_url}')
+            result = shorten_url(full_url)
+            print(f'Shortened Url: {result}')
+            result.pop('originalUrl', None)
+            return result
     except urllib.error.HTTPError as http_err:
         return {'error': f'HTTP error occurred: {http_err}'}
     except json.JSONDecodeError as json_err:
