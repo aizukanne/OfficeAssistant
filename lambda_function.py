@@ -42,12 +42,22 @@ from io import BytesIO, StringIO
 from odoo_functions import authenticate, odoo_get_mapped_models, odoo_get_mapped_fields, odoo_create_record, odoo_fetch_records, odoo_update_record, odoo_delete_record, odoo_print_record, odoo_post_record
 from openai import OpenAIError, BadRequestError
 from prompts import prompts  # Import the prompts from prompts.py
+from reportlab.lib.pagesizes import letter, A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch, cm
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Image, Table, TableStyle, KeepTogether
+from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_JUSTIFY, TA_RIGHT
+from reportlab.pdfgen import canvas
+from reportlab.lib import colors
+from reportlab.graphics.shapes import Drawing, Rect, Line
+from reportlab.graphics import renderPDF
 from semantic_router import Route
 from semantic_router import RouteLayer
 from semantic_router.encoders import OpenAIEncoder
 from tools import tools #Import tools from tools.py
 from typing import Dict, List, Optional, Union, Any
 from urllib.parse import urlparse, unquote, quote_plus, urlencode, urljoin
+from urllib.request import urlopen
 from weaviate.classes.init import Auth
 from weaviate.classes.query import Filter
 from weaviate.classes.query import Sort
@@ -90,7 +100,7 @@ from slack_integration import (
     send_slack_message, send_audio_to_slack, send_file_to_slack,
     get_slack_user_name, update_slack_users, update_slack_conversations,
     find_image_urls, latex_to_slack, message_to_json, process_slack_event,
-    send_typing_indicator
+    send_typing_indicator, set_slack_channel_description
 )
 
 from storage import (
@@ -149,6 +159,7 @@ def get_available_functions(source):
             "send_slack_message": send_slack_message,
             "send_audio_to_slack": send_audio_to_slack,
             "send_file_to_slack": send_file_to_slack,
+            "set_slack_channel_description": set_slack_channel_description,
         }
     elif source == 'telegram':
         platform_functions = {
@@ -886,136 +897,572 @@ def smart_send_message(message, user_name):
         return "No matching user found."
     
 
-# download_and_read_file function moved to media_processing.py to avoid circular imports
-        
-
-class MyFPDF(FPDF):
-    def __init__(self, title):
-        super().__init__()
+class BeautifulPDFGenerator:
+    def __init__(self, title, page_size=letter, theme='professional'):
         self.title = title
-        self.inside_list = False
+        self.page_size = page_size
+        self.theme = theme
+        self.styles = getSampleStyleSheet()
+        self.story = []
+        self.themes = {
+            'professional': {
+                'primary_color': colors.HexColor('#2C3E50'),
+                'accent_color': colors.HexColor('#3498DB'),
+                'text_color': colors.HexColor('#2C3E50'),
+                'light_gray': colors.HexColor('#ECF0F1'),
+                'dark_gray': colors.HexColor('#7F8C8D')
+            },
+            'modern': {
+                'primary_color': colors.HexColor('#1A1A1A'),
+                'accent_color': colors.HexColor('#FF6B6B'),
+                'text_color': colors.HexColor('#333333'),
+                'light_gray': colors.HexColor('#F8F9FA'),
+                'dark_gray': colors.HexColor('#6C757D')
+            },
+            'corporate': {
+                'primary_color': colors.HexColor('#0F4C75'),
+                'accent_color': colors.HexColor('#3282B8'),
+                'text_color': colors.HexColor('#2C3E50'),
+                'light_gray': colors.HexColor('#E8F4FD'),
+                'dark_gray': colors.HexColor('#5A6C7D')
+            }
+        }
+        self._setup_beautiful_styles()
+    
+    def _setup_beautiful_styles(self):
+        """Setup beautiful, professional paragraph styles"""
+        theme_colors = self.themes.get(self.theme, self.themes['professional'])
+        
+        # Title page style
+        self.styles.add(ParagraphStyle(
+            name='DocumentTitle',
+            parent=self.styles['Title'],
+            fontSize=24,
+            spaceAfter=30,
+            alignment=TA_CENTER,
+            textColor=theme_colors['primary_color'],
+            fontName='Helvetica-Bold'
+        ))
+        
+        # Section headers with colored background
+        self.styles.add(ParagraphStyle(
+            name='SectionHeader',
+            parent=self.styles['Heading1'],
+            fontSize=16,
+            spaceBefore=25,
+            spaceAfter=15,
+            textColor=colors.white,
+            fontName='Helvetica-Bold',
+            backColor=theme_colors['primary_color'],
+            borderPadding=10,
+            leftIndent=10,
+            rightIndent=10
+        ))
+        
+        # Subsection headers
+        self.styles.add(ParagraphStyle(
+            name='SubsectionHeader',
+            parent=self.styles['Heading2'],
+            fontSize=14,
+            spaceBefore=20,
+            spaceAfter=12,
+            textColor=theme_colors['accent_color'],
+            fontName='Helvetica-Bold',
+            borderWidth=0,
+            borderColor=theme_colors['accent_color'],
+            borderPadding=5,
+            leftIndent=5
+        ))
+        
+        # Minor headers
+        self.styles.add(ParagraphStyle(
+            name='MinorHeader',
+            parent=self.styles['Heading3'],
+            fontSize=13,
+            spaceBefore=15,
+            spaceAfter=10,
+            textColor=theme_colors['primary_color'],
+            fontName='Helvetica-Bold'
+        ))
+        
+        # Body text with tighter spacing
+        self.styles.add(ParagraphStyle(
+            name='BeautifulBody',
+            parent=self.styles['Normal'],
+            fontSize=11,
+            spaceBefore=4,
+            spaceAfter=4,
+            alignment=TA_JUSTIFY,
+            leading=14,
+            textColor=theme_colors['text_color'],
+            fontName='Helvetica'
+        ))
+        
+        # SCQA section headers renamed to SectionHeader for any bold text ending with colon
+        self.styles.add(ParagraphStyle(
+            name='SCQAHeader',
+            parent=self.styles['Normal'],
+            fontSize=12,
+            spaceBefore=12,
+            spaceAfter=6,
+            alignment=TA_LEFT,
+            leading=14,
+            textColor=theme_colors['primary_color'],
+            fontName='Helvetica-Bold'
+        ))
+        
+        # Enhanced list style with tighter spacing
+        self.styles.add(ParagraphStyle(
+            name='BeautifulBullet',
+            parent=self.styles['Normal'],
+            fontSize=11,
+            spaceBefore=2,
+            spaceAfter=2,
+            leftIndent=25,
+            bulletIndent=15,
+            leading=14,
+            textColor=theme_colors['text_color'],
+            fontName='Helvetica'
+        ))
+        
+        # Quote/callout style with tighter spacing
+        self.styles.add(ParagraphStyle(
+            name='Callout',
+            parent=self.styles['Normal'],
+            fontSize=11,
+            spaceBefore=8,
+            spaceAfter=8,
+            leftIndent=20,
+            rightIndent=20,
+            alignment=TA_JUSTIFY,
+            leading=14,
+            textColor=theme_colors['text_color'],
+            backColor=theme_colors['light_gray'],
+            borderColor=theme_colors['accent_color'],
+            borderWidth=1,
+            borderPadding=10,
+            fontName='Helvetica-Oblique'
+        ))
+        
+        # Metadata/footer style
+        self.styles.add(ParagraphStyle(
+            name='Metadata',
+            parent=self.styles['Normal'],
+            fontSize=10,
+            spaceBefore=15,
+            spaceAfter=3,
+            alignment=TA_RIGHT,
+            textColor=theme_colors['dark_gray'],
+            fontName='Helvetica-Oblique'
+        ))
 
-    def header(self):
-        self.set_font('Arial', 'B', 12)
-        self.cell(0, 10, self.title, 0, 1, 'C')
+    def _create_header_footer_canvas(self, canvas_obj, doc):
+        """Beautiful header and footer with styling"""
+        canvas_obj.saveState()
+        theme_colors = self.themes.get(self.theme, self.themes['professional'])
+        
+        # Header with colored line
+        canvas_obj.setStrokeColor(theme_colors['accent_color'])
+        canvas_obj.setLineWidth(2)
+        header_y = doc.height + doc.topMargin - 0.3 * inch
+        canvas_obj.line(doc.leftMargin, header_y, doc.width + doc.leftMargin, header_y)
+        
+        # Header text
+        canvas_obj.setFont('Helvetica-Bold', 11)
+        canvas_obj.setFillColor(theme_colors['primary_color'])
+        x_center = doc.width / 2 + doc.leftMargin
+        
+        if hasattr(canvas_obj, 'drawCentredText'):
+            canvas_obj.drawCentredText(x_center, header_y + 15, self.title)
+        else:
+            text_width = canvas_obj.stringWidth(self.title, 'Helvetica-Bold', 11)
+            canvas_obj.drawString(x_center - text_width/2, header_y + 15, self.title)
+        
+        # Footer with styled page numbers
+        canvas_obj.setStrokeColor(theme_colors['accent_color'])
+        canvas_obj.setLineWidth(1)
+        footer_y = doc.bottomMargin - 0.5 * inch
+        canvas_obj.line(doc.leftMargin, footer_y + 15, doc.width + doc.leftMargin, footer_y + 15)
+        
+        canvas_obj.setFont('Helvetica', 9)
+        canvas_obj.setFillColor(theme_colors['dark_gray'])
+        footer_text = f'Page {canvas_obj.getPageNumber()}'
+        
+        if hasattr(canvas_obj, 'drawCentredText'):
+            canvas_obj.drawCentredText(x_center, footer_y, footer_text)
+        else:
+            text_width = canvas_obj.stringWidth(footer_text, 'Helvetica', 9)
+            canvas_obj.drawString(x_center - text_width/2, footer_y, footer_text)
+        
+        canvas_obj.restoreState()
 
-    def footer(self):
-        self.set_y(-15)
-        self.set_font('Arial', 'I', 8)
-        self.cell(0, 10, f'Page {self.page_no()}', 0, 0, 'C')
-
-    def write_html(self, html):
-        # Simple HTML parsing (extend this for more tags)
-        html = html.replace('<strong>', '<b>').replace('</strong>', '</b>')
-        html = html.replace('<em>', '<i>').replace('</em>', '</i>')
-
-        # Split the HTML into parts
-        parts = re.split(r'(</?[^>]+>)', html)
-        for part in parts:
-            # Detect and handle opening tags
-            if part.startswith('<b>'):
-                self.set_font('Arial', 'B', 11)
-                continue
-            if part.startswith('<i>'):
-                self.set_font('Arial', 'I', 11)
-                continue
-            if part.startswith('<h1>'):
-                self.set_font('Arial', 'B', 16)
-                continue
-            if part.startswith('<h2>'):
-                self.set_font('Arial', 'B', 14)
-                continue
-            if part.startswith('<h3>'):
-                self.set_font('Arial', 'B', 12)
-                continue
-            if part.startswith('<p>'):
-                self.set_font('Arial', '', 11)
-                continue
-            if part.startswith('<ul>'):
-                self.inside_list = True
-                continue
-            if part.startswith('<li>'):
-                self.set_font('Arial', '', 11)
-                part = '• ' + part[4:]
+    def add_title_page(self):
+        """Add a beautiful title page"""
+        theme_colors = self.themes.get(self.theme, self.themes['professional'])
+        
+        # Add some space
+        self.story.append(Spacer(1, 2*inch))
+        
+        # Main title
+        title_para = Paragraph(self.title, self.styles['DocumentTitle'])
+        self.story.append(title_para)
+        
+        # Decorative line
+        line_drawing = Drawing(400, 20)
+        line_drawing.add(Line(0, 10, 400, 10, strokeColor=theme_colors['accent_color'], strokeWidth=3))
+        self.story.append(line_drawing)
+        
+        self.story.append(Spacer(1, 1*inch))
+        
+    def add_image(self, image_path_or_url, width=None, height=None, caption=None):
+        """Add an image to the document with optional caption"""
+        try:
+            # Handle URLs
+            if image_path_or_url.startswith(('http://', 'https://')):
+                response = urlopen(image_path_or_url)
+                image_data = BytesIO(response.read())
+                img = Image(image_data)
+            # Handle base64 encoded images
+            elif image_path_or_url.startswith('data:image'):
+                header, data = image_path_or_url.split(',', 1)
+                image_data = BytesIO(base64.b64decode(data))
+                img = Image(image_data)
+            # Handle local file paths
+            else:
+                img = Image(image_path_or_url)
             
-            # Detect and handle closing tags
-            if part.startswith('</'):
-                self.set_font('Arial', '', 11)
-                if part.startswith('</h1>') or part.startswith('</h2>') or part.startswith('</h3>'):
-                    self.ln(10)  # Add a line break after headers
-                if part.startswith('</ul>'):
-                    self.inside_list = False
-                if part.startswith('</li>') and self.inside_list:
-                    self.ln(5)  # Add a line break after list items
-                continue
+            # Set dimensions
+            if width and height:
+                img.drawWidth = width
+                img.drawHeight = height
+            elif width:
+                img.drawWidth = width
+                img.drawHeight = img.drawHeight * (width / img.drawWidth)
+            elif height:
+                img.drawHeight = height
+                img.drawWidth = img.drawWidth * (height / img.drawHeight)
+            else:
+                # Default max width
+                max_width = 5*inch
+                if img.drawWidth > max_width:
+                    img.drawHeight = img.drawHeight * (max_width / img.drawWidth)
+                    img.drawWidth = max_width
+            
+            # Center the image
+            img.hAlign = 'CENTER'
+            
+            self.story.append(Spacer(1, 10))
+            self.story.append(img)
+            
+            # Add caption if provided
+            if caption:
+                caption_style = ParagraphStyle(
+                    'ImageCaption',
+                    parent=self.styles['Normal'],
+                    fontSize=9,
+                    spaceAfter=15,
+                    alignment=TA_CENTER,
+                    textColor=self.themes[self.theme]['dark_gray'],
+                    fontName='Helvetica-Oblique'
+                )
+                self.story.append(Paragraph(f"<i>{caption}</i>", caption_style))
+            else:
+                self.story.append(Spacer(1, 10))
+                
+        except Exception as e:
+            # If image fails to load, add an error message
+            error_para = Paragraph(f"[Image could not be loaded: {str(e)}]", self.styles['BeautifulBody'])
+            self.story.append(error_para)
 
-            # Write the actual text content   
-            self.multi_cell(0, 8, part)
+    def write_html(self, html_content):
+        """Convert HTML content to beautiful ReportLab story elements"""
+        parser = BeautifulHTMLParser(self.styles, self)
+        parser.feed(html_content)
+        self.story.extend(parser.get_story())
+
+    def generate_pdf(self, output_path):
+        """Generate the beautiful PDF file"""
+        doc = SimpleDocTemplate(
+            output_path,
+            pagesize=self.page_size,
+            rightMargin=0.8*inch,
+            leftMargin=0.8*inch,
+            topMargin=1.2*inch,
+            bottomMargin=1*inch
+        )
+        
+        # Build the PDF with custom canvas for headers/footers
+        doc.build(
+            self.story, 
+            onFirstPage=self._create_header_footer_canvas,
+            onLaterPages=self._create_header_footer_canvas
+        )
 
 
-def replace_problematic_chars(text):
-    # Replace common problematic Unicode characters with ASCII equivalents
+class BeautifulHTMLParser(HTMLParser):
+    """Enhanced HTML parser with image support and beautiful formatting"""
+    
+    def __init__(self, styles, pdf_generator):
+        super().__init__()
+        self.styles = styles
+        self.pdf_generator = pdf_generator
+        self.story = []
+        self.current_text = ""
+        self.tag_stack = []
+        self.list_level = 0
+        self.in_strong_section = False
+        
+    def handle_starttag(self, tag, attrs):
+        self.tag_stack.append((tag, dict(attrs)))
+        
+        # Handle images
+        if tag == 'img':
+            self._flush_current_text()
+            attrs_dict = dict(attrs)
+            src = attrs_dict.get('src', '')
+            alt = attrs_dict.get('alt', '')
+            width = attrs_dict.get('width')
+            height = attrs_dict.get('height')
+            
+            if width:
+                width = float(width.replace('px', '')) if 'px' in str(width) else float(width)
+            if height:
+                height = float(height.replace('px', '')) if 'px' in str(height) else float(height)
+                
+            self.pdf_generator.add_image(src, width, height, alt if alt else None)
+            return
+        
+        # Don't flush text for inline formatting tags
+        if tag in ['h1', 'h2', 'h3', 'p', 'ul', 'ol', 'blockquote', 'hr']:
+            self._flush_current_text()
+            
+        if tag == 'hr':
+            # Add a horizontal rule
+            theme_colors = self.pdf_generator.themes.get(self.pdf_generator.theme, self.pdf_generator.themes['professional'])
+            line_drawing = Drawing(400, 10)
+            line_drawing.add(Line(0, 5, 400, 5, strokeColor=theme_colors['accent_color'], strokeWidth=1))
+            self.story.append(line_drawing)
+            self.story.append(Spacer(1, 10))
+            
+        if tag in ['ul', 'ol']:
+            self.list_level += 1
+            
+    def handle_endtag(self, tag):
+        if self.tag_stack and self.tag_stack[-1][0] == tag:
+            self.tag_stack.pop()
+            
+        if tag in ['h1', 'h2', 'h3', 'p', 'li', 'blockquote']:
+            self._flush_current_text(tag)
+            
+        if tag in ['ul', 'ol']:
+            self.list_level = max(0, self.list_level - 1)
+            
+        if tag in ['strong', 'b']:
+            self.in_strong_section = False
+            
+    def handle_data(self, data):
+        self.current_text += data
+        
+    def _flush_current_text(self, end_tag=None):
+        """Convert accumulated text to appropriate beautiful paragraph style"""
+        if not self.current_text.strip():
+            self.current_text = ""
+            return
+            
+        text = self.current_text.strip()
+        
+        # Check for section headers (any bold text ending with colon) BEFORE applying formatting
+        is_section_header = False
+        if ('strong' in [tag for tag, _ in self.tag_stack] or 'b' in [tag for tag, _ in self.tag_stack]):
+            if text.endswith(':'):
+                is_section_header = True
+        
+        formatted_text = self._apply_beautiful_formatting(text)
+        
+        # Determine style based on current context
+        if 'h1' in [tag for tag, _ in self.tag_stack] or end_tag == 'h1':
+            style = self.styles['SectionHeader']
+        elif 'h2' in [tag for tag, _ in self.tag_stack] or end_tag == 'h2':
+            style = self.styles['SubsectionHeader']
+        elif 'h3' in [tag for tag, _ in self.tag_stack] or end_tag == 'h3':
+            style = self.styles['MinorHeader']
+        elif is_section_header:
+            style = self.styles['SCQAHeader']
+        elif 'blockquote' in [tag for tag, _ in self.tag_stack] or end_tag == 'blockquote':
+            style = self.styles['Callout']
+        elif 'li' in [tag for tag, _ in self.tag_stack] or end_tag == 'li':
+            style = self.styles['BeautifulBullet']
+            formatted_text = f"• {formatted_text}"
+        else:
+            # Check if this looks like metadata (prepared by, date, etc.)
+            if any(keyword in text.lower() for keyword in ['prepared by:', 'date:', 'author:', 'version:']):
+                style = self.styles['Metadata']
+            else:
+                style = self.styles['BeautifulBody']
+            
+        if formatted_text:
+            para = Paragraph(formatted_text, style)
+            
+            # Add some special handling for section breaks
+            if '---' in text:
+                theme_colors = self.pdf_generator.themes.get(self.pdf_generator.theme, self.pdf_generator.themes['professional'])
+                line_drawing = Drawing(400, 20)
+                line_drawing.add(Line(50, 10, 350, 10, strokeColor=theme_colors['accent_color'], strokeWidth=2))
+                self.story.append(Spacer(1, 8))
+                self.story.append(line_drawing)
+                self.story.append(Spacer(1, 8))
+            else:
+                self.story.append(para)
+            
+        self.current_text = ""
+        
+    def _apply_beautiful_formatting(self, text):
+        """Apply beautiful inline formatting"""
+        formatted_text = text
+        
+        # Apply formatting based on tag stack
+        for tag, attrs in self.tag_stack:
+            if tag in ['strong', 'b']:
+                # Don't double-wrap if already wrapped
+                if not formatted_text.startswith('<b>'):
+                    formatted_text = f"<b>{formatted_text}</b>"
+            elif tag in ['em', 'i']:
+                # Don't double-wrap if already wrapped  
+                if not formatted_text.startswith('<i>'):
+                    formatted_text = f"<i>{formatted_text}</i>"
+                
+        return formatted_text
+        
+    def get_story(self):
+        self._flush_current_text()
+        return self.story
+
+
+def clean_unicode_text(text):
+    """Enhanced Unicode cleaning with more characters"""
     replacements = {
-        '\u2018': "'",  # Left single quotation mark
-        '\u2019': "'",  # Right single quotation mark
-        '\u201c': '"',  # Left double quotation mark
-        '\u201d': '"',  # Right double quotation mark
-        '\u2013': '-',  # En dash
-        '\u2014': '-',  # Em dash
-        '\u2026': '...',  # Ellipsis
-        '\u2022': '*',  # Bullet point
-        '\u00A0': ' ',  # Non-breaking space
-        '\u2010': '-',  # Hyphen
-        '\u2012': '-',  # Figure dash
-        '\u2015': '-',  # Horizontal bar
+        # Quotation marks
+        '\u2018': "'", '\u2019': "'", '\u201a': ",", '\u201b': "'",
+        '\u201c': '"', '\u201d': '"', '\u201e': ',,', '\u201f': '"',
+        
+        # Dashes and hyphens
+        '\u2013': '–', '\u2014': '—', '\u2010': '-', '\u2012': '-',
+        '\u2015': '———', '\u2053': '~',
+        
+        # Spaces and breaks
+        '\u00A0': ' ', '\u2000': ' ', '\u2001': ' ', '\u2002': ' ',
+        '\u2003': ' ', '\u2004': ' ', '\u2005': ' ', '\u2006': ' ',
+        '\u2007': ' ', '\u2008': ' ', '\u2009': ' ', '\u200A': ' ',
+        '\u200B': '', '\u200C': '', '\u200D': '',
+        
+        # Symbols
+        '\u2022': '•', '\u2023': '‣', '\u2024': '.', '\u2025': '..',
+        '\u2026': '…', '\u2027': '‧', '\u2122': '™', '\u00A9': '©',
+        '\u00AE': '®', '\u2120': '℠',
     }
+    
     for original, replacement in replacements.items():
         text = text.replace(original, replacement)
+    
     return text
 
 
-def send_as_pdf(text, chat_id, title, ts=None):
+def send_as_pdf(text, chat_id, title, ts=None, theme='professional', include_title_page=False):
     """
-    Converts formatted text to PDF and uploads it to a Slack channel.
-    Returns a clear status string after execution.
+    Beautiful PDF generator with image support - Drop-in replacement for the original function.
+    
+    Args:
+        text (str): Markdown formatted text to convert to PDF
+        chat_id (str): Slack channel ID
+        title (str): PDF title and filename
+        ts (str, optional): Slack thread timestamp
+        theme (str, optional): Theme for styling ('professional', 'modern', 'corporate')
+        include_title_page (bool, optional): Whether to include a title page
+    
+    Returns:
+        str: Status message indicating success or failure
     """
     pdf_path = f"/tmp/{title}.pdf"
+    
     try:
-        # Use a Unicode-supporting font
-        pdf = MyFPDF(title)
-        pdf.add_page()
-        # Register and use a Unicode font (e.g., DejaVu)
-        pdf.add_font('DejaVu', '', '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', uni=True)
-        pdf.set_font('DejaVu', '', 11)
-
-        # Convert Markdown to HTML
-        text = text.replace("\n\n", "\n")
-        html_content = markdown2.markdown(text)
-        html_content = replace_problematic_chars(html_content)
-        pdf.write_html(html_content)
-
-        pdf.output(pdf_path, 'F')
-
+        # Clean the input text but preserve paragraph structure
+        cleaned_text = clean_unicode_text(text)
+        
+        # Convert Markdown to HTML with extended features
+        # DON'T collapse double newlines - they create paragraph breaks
+        html_content = markdown2.markdown(cleaned_text, extras=[
+            'fenced-code-blocks', 
+            'tables', 
+            'strike',
+            'task_list',
+            'spoiler',
+            'footnotes',
+            'header-ids'
+        ])
+        
+        # Create beautiful PDF
+        pdf_generator = BeautifulPDFGenerator(title, theme=theme)
+        
+        # Add title page if requested
+        if include_title_page:
+            pdf_generator.add_title_page()
+            
+        pdf_generator.write_html(html_content)
+        pdf_generator.generate_pdf(pdf_path)
+        
         # Upload to S3
-        bucket_name = docs_bucket_name
-        folder_name = 'uploads'
-        file_key = f"{folder_name}/{title}.pdf"
-        s3_client = boto3.client('s3')
-        s3_client.upload_file(pdf_path, bucket_name, file_key)
-
+        try:
+            bucket_name = docs_bucket_name
+            folder_name = 'uploads'
+            file_key = f"{folder_name}/{title}.pdf"
+            s3_client = boto3.client('s3')
+            s3_client.upload_file(pdf_path, bucket_name, file_key)
+            s3_status = "uploaded to S3"
+        except NameError:
+            s3_status = "S3 upload skipped (docs_bucket_name not defined)"
+        except Exception as s3_error:
+            s3_status = f"S3 upload failed: {s3_error}"
+        
         # Upload to Slack
-        send_file_to_slack(pdf_path, chat_id, title, ts)
-        status = "Success: PDF sent to Slack and uploaded to S3."
-
+        try:
+            send_file_to_slack(pdf_path, chat_id, title, ts)
+            slack_status = "sent to Slack"
+        except NameError:
+            slack_status = "Slack upload skipped (send_file_to_slack not defined)"
+        except Exception as slack_error:
+            slack_status = f"Slack upload failed: {slack_error}"
+        
+        status = f"Success: Beautiful PDF generated with {theme} theme, {s3_status}, and {slack_status}."
+        
     except Exception as e:
-        status = f"Failure: {e}"
-
+        status = f"Failure: {str(e)}"
+        
     finally:
-        # Clean up
+        # Clean up temporary file
         if os.path.exists(pdf_path):
             os.remove(pdf_path)
+            
     return status
-    
+
+
+# Backward compatibility aliases
+class MyFPDF:
+    """Compatibility class - redirects to BeautifulPDFGenerator"""
+    def __init__(self, title):
+        print("Warning: MyFPDF is deprecated. Use BeautifulPDFGenerator instead.")
+        self.generator = BeautifulPDFGenerator(title)
+        
+    def write_html(self, html):
+        return self.generator.write_html(html)
+        
+    def output(self, path, dest='F'):
+        return self.generator.generate_pdf(path)
+
+
+def replace_problematic_chars(text):
+    """Backward compatibility - redirects to clean_unicode_text"""
+    return clean_unicode_text(text)
+
 
 def list_files(folder_prefix='uploads'):
     """

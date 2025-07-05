@@ -579,5 +579,30 @@ tools = [
                 "required": ["query"]
             }
         }
-    }    
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "set_slack_channel_description",
+            "description": "Sets the purpose (description) and/or topic of a Slack channel. Can update either or both properties. Supports both channel IDs and channel names with automatic resolution.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "channel": {
+                        "type": "string",
+                        "description": "The channel ID (e.g., 'C1234567890') or channel name (e.g., 'general', '#general'). Channel names will be automatically resolved to IDs."
+                    },
+                    "purpose": {
+                        "type": "string",
+                        "description": "Optional. The new purpose/description for the channel. This appears in the channel info and describes what the channel is for."
+                    },
+                    "topic": {
+                        "type": "string",
+                        "description": "Optional. The new topic for the channel. This appears at the top of the channel and is typically used for current discussions or announcements."
+                    }
+                },
+                "required": ["channel"]
+            }
+        }
+    }
 ]

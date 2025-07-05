@@ -889,3 +889,140 @@ def send_slack_message_with_typing(message, channel, ts=None, show_typing=True, 
     
     # Send the actual message
     return send_slack_message(message, channel, ts)
+
+def set_slack_channel_description(channel, purpose=None, topic=None):
+    """
+    Sets the purpose (description) and/or topic of a Slack channel.
+    
+    Parameters:
+    - channel: Channel ID or channel name (with or without #)
+    - purpose: Optional new purpose/description for the channel
+    - topic: Optional new topic for the channel
+    
+    Returns:
+    - dict: Success/failure status with details
+    """
+    from config import slack_client
+    
+    if not purpose and not topic:
+        return {
+            "success": False,
+            "error": "At least one of 'purpose' or 'topic' must be provided"
+        }
+    
+    try:
+        # Resolve channel name to ID if necessary
+        resolved_channel_id = resolve_channel_to_id(channel)
+        if not resolved_channel_id:
+            return {
+                "success": False,
+                "error": f"Channel '{channel}' not found"
+            }
+        
+        results = {}
+        
+        # Set purpose if provided
+        if purpose:
+            try:
+                purpose_response = slack_client.conversations_setPurpose(
+                    channel=resolved_channel_id,
+                    purpose=purpose
+                )
+                if purpose_response["ok"]:
+                    results["purpose"] = {
+                        "success": True,
+                        "message": f"Channel purpose updated to: '{purpose}'"
+                    }
+                else:
+                    results["purpose"] = {
+                        "success": False,
+                        "error": purpose_response.get("error", "Unknown error setting purpose")
+                    }
+            except Exception as e:
+                results["purpose"] = {
+                    "success": False,
+                    "error": f"Error setting purpose: {str(e)}"
+                }
+        
+        # Set topic if provided
+        if topic:
+            try:
+                topic_response = slack_client.conversations_setTopic(
+                    channel=resolved_channel_id,
+                    topic=topic
+                )
+                if topic_response["ok"]:
+                    results["topic"] = {
+                        "success": True,
+                        "message": f"Channel topic updated to: '{topic}'"
+                    }
+                else:
+                    results["topic"] = {
+                        "success": False,
+                        "error": topic_response.get("error", "Unknown error setting topic")
+                    }
+            except Exception as e:
+                results["topic"] = {
+                    "success": False,
+                    "error": f"Error setting topic: {str(e)}"
+                }
+        
+        # Determine overall success
+        all_successful = all(
+            result.get("success", False) 
+            for result in results.values()
+        )
+        
+        return {
+            "success": all_successful,
+            "channel_id": resolved_channel_id,
+            "results": results
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Unexpected error: {str(e)}"
+        }
+
+def resolve_channel_to_id(channel_identifier):
+    """
+    Resolves a channel name or ID to a channel ID.
+    
+    Parameters:
+    - channel_identifier: Channel ID, channel name, or #channel-name
+    
+    Returns:
+    - str: Channel ID if found, None otherwise
+    """
+    # If it looks like a channel ID (starts with C), return as-is
+    if channel_identifier.startswith('C') and len(channel_identifier) >= 9:
+        return channel_identifier
+    
+    # Clean channel name (remove # if present)
+    channel_name = channel_identifier.lstrip('#')
+    
+    try:
+        # Get all channels and find matching name
+        from storage import get_channels
+        channels = get_channels()
+        
+        for channel in channels:
+            if channel.get('name') == channel_name:
+                return channel.get('id')
+        
+        # If not found in local cache, try Slack API
+        from config import slack_client
+        response = slack_client.conversations_list(
+            types="public_channel,private_channel"
+        )
+        
+        if response["ok"]:
+            for channel in response["channels"]:
+                if channel["name"] == channel_name:
+                    return channel["id"]
+    
+    except Exception as e:
+        print(f"Error resolving channel '{channel_identifier}': {e}")
+    
+    return None
