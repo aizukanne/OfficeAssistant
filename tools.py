@@ -264,13 +264,13 @@ tools = [
         "type": "function",
         "function": {
             "name": "send_as_pdf",
-            "description": "Converts formatted text to a PDF and uploads it to a specified Slack channel. The text can contain Markdown formatting, which will be converted to HTML for the PDF.",
+            "description": "Converts formatted text to a beautiful, professional PDF with enhanced styling and uploads it to a specified Slack channel. The text can contain Markdown formatting and images, which will be rendered with professional typography, color schemes, and layout. Supports multiple themes and advanced formatting features including images from URLs, local files, or base64 data.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "text": {
                         "type": "string",
-                        "description": "The text to be converted to PDF, which may contain Markdown formatting."
+                        "description": "The text to be converted to PDF, which may contain Markdown formatting including headers, lists, bold/italic text, images, tables, and other markdown features. Images can be included using standard markdown syntax with URLs, local paths, or base64 data."
                     },
                     "chat_id": {
                         "type": "string",
@@ -278,11 +278,21 @@ tools = [
                     },
                     "title": {
                         "type": "string",
-                        "description": "The title of the PDF file to be uploaded."
+                        "description": "The title of the PDF file to be uploaded. This will appear in headers and as the document title."
                     },
                     "ts": {
                         "type": "string",
                         "description": "Optional. The thread timestamp (ts) to reply in a thread."
+                    },
+                    "theme": {
+                        "type": "string",
+                        "description": "Optional. The visual theme for the PDF styling. Options: 'professional' (default - blue/gray corporate theme), 'modern' (black/red contemporary theme), or 'corporate' (navy/blue traditional theme).",
+                        "enum": ["professional", "modern", "corporate"],
+                        "default": "professional"
+                    },
+                    "include_title_page": {
+                        "type": "boolean",
+                        "description": "Optional. Whether to include a decorative title page at the beginning of the PDF. Default is false."
                     }
                 },
                 "required": ["text", "chat_id", "title"]
