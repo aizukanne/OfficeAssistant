@@ -37,7 +37,7 @@ from collections import Counter
 from datetime import timedelta, UTC
 from decimal import Decimal
 from docx import Document
-from fpdf import FPDF
+from html.parser import HTMLParser
 from io import BytesIO, StringIO
 from odoo_functions import authenticate, odoo_get_mapped_models, odoo_get_mapped_fields, odoo_create_record, odoo_fetch_records, odoo_update_record, odoo_delete_record, odoo_print_record, odoo_post_record
 from openai import OpenAIError, BadRequestError
@@ -100,7 +100,8 @@ from slack_integration import (
     send_slack_message, send_audio_to_slack, send_file_to_slack,
     get_slack_user_name, update_slack_users, update_slack_conversations,
     find_image_urls, latex_to_slack, message_to_json, process_slack_event,
-    send_typing_indicator, set_slack_channel_description
+    send_typing_indicator, set_slack_channel_description, create_slack_channel,
+    invite_users_to_slack_channel
 )
 
 from storage import (
@@ -160,6 +161,8 @@ def get_available_functions(source):
             "send_audio_to_slack": send_audio_to_slack,
             "send_file_to_slack": send_file_to_slack,
             "set_slack_channel_description": set_slack_channel_description,
+            "create_slack_channel": create_slack_channel,
+            "invite_users_to_slack_channel": invite_users_to_slack_channel
         }
     elif source == 'telegram':
         platform_functions = {
@@ -665,7 +668,7 @@ async def get_web_pages(urls, full_text=False, max_concurrent_requests=5):
             await connector.close()
 
 
-async def fetch_page(session, url, timeout=30):
+async def fetch_page(session, url, timeout=60):
     headers = {
         'User-Agent': random.choice(USER_AGENTS)
     }
@@ -775,13 +778,13 @@ async def process_page(session, url, semaphore, full_text=False):
 
                 if full_text:
                     if has_proper_sentences(cleaned_text):
-                        summary_or_full_text = rank_sentences(cleaned_text, stopwords, max_sentences=150)  
+                        summary_or_full_text = rank_sentences(cleaned_text, stopwords, max_sentences=50)  
                     else:
                         summary_or_full_text = cleaned_text
                 else:
                     try:
                         if has_proper_sentences(cleaned_text):
-                            summary_or_full_text = rank_sentences(cleaned_text, stopwords, max_sentences=50) 
+                            summary_or_full_text = rank_sentences(cleaned_text, stopwords, max_sentences=20) 
                         else:
                             summary_or_full_text = cleaned_text
                     except Exception as e:
@@ -895,7 +898,7 @@ def smart_send_message(message, user_name):
         return "No exact match found. Did you mean: " + ", ".join([f"{u['real_name']} ({u['display_name']})" for u in similar_users]) + "?"
     else:
         return "No matching user found."
-    
+
 
 class BeautifulPDFGenerator:
     def __init__(self, title, page_size=letter, theme='professional'):
@@ -1526,7 +1529,7 @@ def ask_bighead(prompt, model_option='pro'):
     except Exception as e:
         return f'An error occurred: {e}'
         
-        
+
 def to_markdown(text):
     text = text.replace('•', '  *')
     indented_text = textwrap.indent(text, '> ', predicate=lambda _: True)

@@ -61,6 +61,7 @@ prompts = {
         For create and update you must provide the minimum fields required for that operation are provided before you attempt to create.
         You must only use the fields returned by get_mapped_models. DO NOT use field names from training data or your knowledge of any specific ERP in CRUD requests to the API.
         When using the odoo_create_record tool, you must provide both the external_model and record_data parameters as described in the function description.
+        When you use the odoo_print_record function, you must return the raw URL provided to the user. Do not try to open the file or read the contents.
     """,
     "instruct_Problem_Solving": """
         You are skilled at helping achieve their goals and dreams above and beyond their expectations. You push and motivate them by encouraging them to do more. 

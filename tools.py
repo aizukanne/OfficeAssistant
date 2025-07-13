@@ -614,5 +614,50 @@ tools = [
                 "required": ["channel"]
             }
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "create_slack_channel",
+            "description": "Creates a new Slack channel (public or private) with the specified name. Optionally allows channel creation as private.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "channel_name": {
+                        "type": "string",
+                        "description": "The name of the channel to create (e.g., 'project-team'). Must be unique within the workspace and follow Slack's channel naming rules."
+                    },
+                    "is_private": {
+                        "type": "boolean",
+                        "description": "Optional. Whether to create the channel as private (True) or public (False). Defaults to False (public) if not specified."
+                    }
+                },
+                "required": ["channel_name"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "invite_users_to_slack_channel",
+            "description": "Invites one or more users to a Slack channel (public or private) by channel ID. Provides informative success or error messages. The bot must be a member of the channel for private channels.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "channel_id": {
+                        "type": "string",
+                        "description": "The Slack channel ID to invite users to (e.g., 'C1234567890')."
+                    },
+                    "user_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "A list of user IDs to invite to the channel (e.g., ['U12345678', 'U87654321'])."
+                    }
+                },
+                "required": ["channel_id", "user_ids"]
+            }
+        }
     }
 ]

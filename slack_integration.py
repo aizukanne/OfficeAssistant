@@ -11,6 +11,7 @@ import threading
 from bs4 import BeautifulSoup
 from config import slack_bot_token, slack_client, names_table, channels_table, image_bucket_name
 from slack_sdk import WebClient
+from slack_sdk.errors import SlackApiError
 from slack_sdk.rtm_v2 import RTMClient
 from urllib.parse import urlparse, unquote
 
@@ -890,6 +891,7 @@ def send_slack_message_with_typing(message, channel, ts=None, show_typing=True, 
     # Send the actual message
     return send_slack_message(message, channel, ts)
 
+
 def set_slack_channel_description(channel, purpose=None, topic=None):
     """
     Sets the purpose (description) and/or topic of a Slack channel.
@@ -984,6 +986,68 @@ def set_slack_channel_description(channel, purpose=None, topic=None):
             "success": False,
             "error": f"Unexpected error: {str(e)}"
         }
+
+
+def create_slack_channel(channel_name, is_private=False):
+    """
+    Create a Slack channel using the Slack SDK.
+
+    :param token: Slack bot token (xoxb-...)
+    :param channel_name: Name of the channel to create
+    :param is_private: Boolean, True for private channel, False for public
+    :return: Channel ID if successful, otherwise send failure message and print error to console
+    """
+    from config import slack_client
+    try:
+        response = slack_client.conversations_create(
+            name=channel_name,
+            is_private=is_private
+        )
+        if response["ok"]:
+            print(f"Channel created: {response['channel']['name']} (ID: {response['channel']['id']})")
+            return (f"Channel created: {response['channel']['name']} (ID: {response['channel']['id']})")
+        else:
+            print("Failed to create channel:", response["error"])
+            return (f"Failed to create channel: {response['error']}")
+    except SlackApiError as e:
+        print(f"Slack API error: {e.response['error']}")
+        return (f"Slack API error: {e.response['error']}")
+
+
+def invite_users_to_slack_channel(channel_id, user_ids):
+    """
+    Invite one or more users to a Slack channel (public or private) using the Slack SDK.
+
+    :param channel_id: The ID of the channel to invite users to (e.g., 'C1234567890').
+    :param user_ids: A list of user IDs to invite (e.g., ['U12345678', 'U87654321']).
+    :return: Success or failure message with details. Prints and returns all informative results.
+    """
+    from config import slack_client
+
+    if not isinstance(user_ids, list):
+        print("user_ids must be a list of Slack user IDs.")
+        return "Error: user_ids must be a list of Slack user IDs."
+
+    try:
+        response = slack_client.conversations_invite(
+            channel=channel_id,
+            users=",".join(user_ids)
+        )
+        if response["ok"]:
+            invited = [user['id'] for user in response['channel'].get('members', []) if user in user_ids]
+            message = (f"Successfully invited users to channel {channel_id}.")
+            print(message)
+            return message
+        else:
+            error_message = f"Failed to invite users to channel: {response['error']}"
+            print(error_message)
+            return error_message
+    except SlackApiError as e:
+        # Common errors: already_in_channel, user_not_found, cant_invite_self
+        error_message = f"Slack API error: {e.response['error']}"
+        print(error_message)
+        return error_message
+
 
 def resolve_channel_to_id(channel_identifier):
     """
