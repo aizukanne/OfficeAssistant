@@ -88,7 +88,7 @@ from conversation import (
 from media_processing import (
     text_to_speech, upload_image_to_s3, transcribe_speech_from_memory,
     download_audio_to_memory, process_url, transcribe_multiple_urls,
-    convert_to_wav_in_memory, has_proper_sentences
+    convert_to_wav_in_memory, has_proper_sentences, EnhancedWebScraper
 )
 
 from nlp_utils import (
@@ -117,72 +117,11 @@ from telegram_integration import (
 
 nltk.data.path.append("/opt/python/nltk_data")
 
-def get_available_functions(source):
-    """
-    Get available functions based on the source platform.
-    
-    Args:
-        source (str): The platform source ('slack', 'telegram', etc.)
-        
-    Returns:
-        dict: Dictionary of available functions for the platform
-    """
-    # Common functions available to all platforms
-    common_functions = {
-        "browse_internet": browse_internet,
-        "google_search": google_search,
-        "get_coordinates": get_coordinates,
-        "get_weather_data": get_weather_data,
-        "get_message_by_sort_id": get_message_by_sort_id,
-        "get_messages_in_range": get_messages_in_range,
-        "get_users": get_users,
-        "get_channels": get_channels,
-        "send_as_pdf": send_as_pdf,
-        "list_files": list_files,
-        "solve_maths": solve_maths,
-        "odoo_get_mapped_models": odoo_get_mapped_models,
-        #"odoo_get_mapped_fields": odoo_get_mapped_fields,
-        "odoo_create_record": odoo_create_record,
-        "odoo_fetch_records": odoo_fetch_records,
-        "odoo_update_record": odoo_update_record,
-        "odoo_delete_record": odoo_delete_record,
-        "odoo_print_record": odoo_print_record,
-        "odoo_post_record": odoo_post_record,
-        "ask_openai_o1": ask_openai_o1,
-        "get_embedding": get_embedding,
-        "manage_mute_status": manage_mute_status,
-        "search_and_format_products": search_and_format_products
-    }
-    
-    # Platform-specific functions
-    if source == 'slack':
-        platform_functions = {
-            "send_slack_message": send_slack_message,
-            "send_audio_to_slack": send_audio_to_slack,
-            "send_file_to_slack": send_file_to_slack,
-            "set_slack_channel_description": set_slack_channel_description,
-            "create_slack_channel": create_slack_channel,
-            "invite_users_to_slack_channel": invite_users_to_slack_channel
-        }
-    elif source == 'telegram':
-        platform_functions = {
-            "send_telegram_message": send_telegram_message,
-            "send_telegram_audio": send_telegram_audio,
-            "send_telegram_file": send_telegram_file,
-        }
-    else:
-        # Default to no platform-specific functions for unknown sources
-        platform_functions = {}
-    
-    # Combine common and platform-specific functions
-    all_functions = {**common_functions, **platform_functions}
-    
-    print(f"Loaded {len(all_functions)} functions for platform '{source}' ({len(common_functions)} common + {len(platform_functions)} platform-specific)")
-    
-    return all_functions
-
 # Any remaining global variables that need to stay in the main file
 current_datetime = datetime.datetime.now(UTC)
+
+# Create a global instance for drop-in replacement
+_scraper_instance = EnhancedWebScraper()
 
 # Connect to Weaviate Cloud
 weaviate_client = weaviate.connect_to_weaviate_cloud(
@@ -536,6 +475,71 @@ def invoke_lambda(data):
     return response_payload
 
 
+def get_available_functions(source):
+    """
+    Get available functions based on the source platform.
+    
+    Args:
+        source (str): The platform source ('slack', 'telegram', etc.)
+        
+    Returns:
+        dict: Dictionary of available functions for the platform
+    """
+    # Common functions available to all platforms
+    common_functions = {
+        "browse_internet": browse_internet,
+        "google_search": google_search,
+        "get_coordinates": get_coordinates,
+        "get_weather_data": get_weather_data,
+        "get_message_by_sort_id": get_message_by_sort_id,
+        "get_messages_in_range": get_messages_in_range,
+        "get_users": get_users,
+        "get_channels": get_channels,
+        "send_as_pdf": send_as_pdf,
+        "list_files": list_files,
+        "solve_maths": solve_maths,
+        "odoo_get_mapped_models": odoo_get_mapped_models,
+        #"odoo_get_mapped_fields": odoo_get_mapped_fields,
+        "odoo_create_record": odoo_create_record,
+        "odoo_fetch_records": odoo_fetch_records,
+        "odoo_update_record": odoo_update_record,
+        "odoo_delete_record": odoo_delete_record,
+        "odoo_print_record": odoo_print_record,
+        "odoo_post_record": odoo_post_record,
+        "ask_openai_o1": ask_openai_o1,
+        "get_embedding": get_embedding,
+        "manage_mute_status": manage_mute_status,
+        "search_and_format_products": search_and_format_products
+    }
+    
+    # Platform-specific functions
+    if source == 'slack':
+        platform_functions = {
+            "send_slack_message": send_slack_message,
+            "send_audio_to_slack": send_audio_to_slack,
+            "send_file_to_slack": send_file_to_slack,
+            "set_slack_channel_description": set_slack_channel_description,
+            "create_slack_channel": create_slack_channel,
+            "invite_users_to_slack_channel": invite_users_to_slack_channel
+        }
+    elif source == 'telegram':
+        platform_functions = {
+            "send_telegram_message": send_telegram_message,
+            "send_telegram_audio": send_telegram_audio,
+            "send_telegram_file": send_telegram_file,
+        }
+    else:
+        # Default to no platform-specific functions for unknown sources
+        platform_functions = {}
+    
+    # Combine common and platform-specific functions
+    all_functions = {**common_functions, **platform_functions}
+    
+    print(f"Loaded {len(all_functions)} functions for platform '{source}' ({len(common_functions)} common + {len(platform_functions)} platform-specific)")
+    
+    return all_functions
+
+
 def google_search(search_term, before=None, after=None, intext=None, allintext=None, and_condition=None, must_have=None):
     # Initialize API keys from environment variables
     custom_search_api_key = os.getenv('CUSTOM_SEARCH_API_KEY')
@@ -590,277 +594,23 @@ def google_search(search_term, before=None, after=None, intext=None, allintext=N
     return web_content
 
 
+# Drop-in replacement functions that use the class
 def browse_internet(urls, full_text=False):
-    try:
-        # Suppress resource warnings in Lambda environment
-        import warnings
-        warnings.filterwarnings("ignore", category=ResourceWarning)
-        
-        web_pages = asyncio.run(get_web_pages(urls, full_text))
-        #print(web_pages)
-        return web_pages
-    except asyncio.TimeoutError:
-        logging.error(f"Timeout error in browse_internet for URLs: {urls}")
-        return [{
-            "type": "text",
-            "text": {
-                'error': 'Request timed out while fetching web pages',
-                'urls': urls
-            }
-        }]
-    except Exception as e:
-        logging.error(f"Error in browse_internet: {e}")
-        return [{
-            "type": "text",
-            "text": {
-                'error': f'Failed to fetch web pages: {str(e)}',
-                'urls': urls
-            }
-        }]
-
+    """Drop-in replacement for your existing browse_internet function."""
+    return _scraper_instance.browse_internet(urls, full_text)
 
 async def get_web_pages(urls, full_text=False, max_concurrent_requests=5):
-    try:
-        # Configure connector with explicit settings to prevent resource warnings
-        connector = aiohttp.TCPConnector(
-            limit=max_concurrent_requests,
-            limit_per_host=2,
-            force_close=True,  # Force close connections to prevent warnings
-            enable_cleanup_closed=True  # Clean up closed connections immediately
-        )
-        
-        async with aiohttp.ClientSession(connector=connector) as session:
-            semaphore = asyncio.Semaphore(max_concurrent_requests)
-            tasks = [process_page(session, url, semaphore, full_text) for url in urls]
-            # Use return_exceptions=True to prevent gather from raising exceptions
-            results = await asyncio.gather(*tasks, return_exceptions=True)
-            
-            # Process results and handle any exceptions
-            flattened_results = []
-            for i, result in enumerate(results):
-                if isinstance(result, Exception):
-                    logging.error(f"Error processing URL {urls[i]}: {result}")
-                    flattened_results.append({
-                        "type": "text",
-                        "text": {
-                            'url': urls[i],
-                            'error': f'Failed to process page: {str(result)}'
-                        }
-                    })
-                else:
-                    flattened_results.extend(result)
-            
-            #print(json.dumps(flattened_results))
-            return flattened_results
-    except Exception as e:
-        logging.error(f"Error in get_web_pages: {e}")
-        # Return error responses for all URLs
-        return [{
-            "type": "text",
-            "text": {
-                'url': url,
-                'error': f'Failed to fetch pages: {str(e)}'
-            }
-        } for url in urls]
-    finally:
-        # Ensure connector is closed even if session context manager doesn't run
-        if 'connector' in locals():
-            await connector.close()
-
-
-async def fetch_page(session, url, timeout=60):
-    headers = {
-        'User-Agent': random.choice(USER_AGENTS)
-    }
-    
-    # Create timeout object for both connection and read
-    timeout_obj = aiohttp.ClientTimeout(total=timeout, connect=10, sock_read=timeout)
-    
-    try:
-        async with session.get(url, headers=headers, proxy=proxy_url, timeout=timeout_obj) as response:
-            #print(f"Search Result: {response}")
-            content_type = response.headers.get('Content-Type', '')
-            if 'text' in content_type:
-                encoding = response.charset or 'utf-8'
-                content = await response.text(encoding=encoding)
-                # Explicitly release the connection
-                response.release()
-                return content
-            elif 'application/pdf' in content_type or 'application/msword' in content_type or 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' in content_type:
-                content = await response.read()
-                # Explicitly release the connection
-                response.release()
-                return content, content_type
-            else:
-                # Explicitly release the connection for non-text content
-                response.release()
-                return None, content_type
-    except asyncio.TimeoutError:
-        logging.error(f"Timeout error: {url} took too long to respond.")
-        return f"Timeout error: {url} took too long to respond.", None
-    except ClientConnectorSSLError as e:
-        logging.error(f"SSL handshake error: Failed to connect to {url} - {e}")
-        return f"SSL handshake error: Failed to connect to {url}", None
-    except aiohttp.ClientError as e:
-        logging.error(f"Client error fetching {url}: {e}")
-        return f"Client error: {str(e)}", None
-    except Exception as e:
-        logging.error(f"Unexpected error fetching {url}: {e}")
-        return f"Unexpected error: {str(e)}", None
+    """Drop-in replacement for your existing get_web_pages function."""
+    return await _scraper_instance.get_web_pages(urls, full_text, max_concurrent_requests)
 
 async def process_page(session, url, semaphore, full_text=False):
-    async with semaphore:
-        try:
-            result = await fetch_page(session, url)
-        except ClientError as e:
-            logging.error(f"Client error occurred while fetching the page: {e}")
-            print(f"Client error occurred while fetching {url}: {e}")
-            return [{
-                "type": "text",
-                "text": {
-                    'url': url,
-                    'error': 'Failed to fetch page due to client error'
-                }
-            }]
-        except Exception as e:
-            logging.error(f"Unexpected error occurred: {e}")
-            print(f"Unexpected error occurred while fetching {url}: {e}")
-            return [{
-                "type": "text",
-                "text": {
-                    'url': url,
-                    'error': 'An unexpected error occurred while fetching the page'
-                }
-            }]
-        
-        response_list = []
+    """Drop-in replacement for your existing process_page function."""
+    return await _scraper_instance.process_page(session, url, semaphore, full_text)
 
-        #print(f'Raw Result: {result}')
-        try:
-            if isinstance(result, tuple):
-                document_content, content_type = result
-                if document_content is not None and content_type is not None:
-                    try:
-                        s3_url = upload_document_to_s3(document_content, content_type, url)
-                        response_list.append({
-                            "type": "text",
-                            "text": {
-                                'url': url,
-                                'summary': 'This file contains additional information for your search. Send it to the user.',
-                                's3_url': s3_url
-                            }
-                        })
-                    except Exception as e:
-                        logging.error(f"Failed to upload document to S3: {e}")
-                        print(f"Failed to upload document to S3 for {url}: {e}")
-                        response_list.append({
-                            "type": "text",
-                            "text": {
-                                'url': url,
-                                'error': 'Failed to upload document to S3'
-                            }
-                        })
-                else:
-                    response_list.append({
-                        "type": "text",
-                        "text": {
-                            'url': url,
-                            'error': 'Unsupported content type'
-                        }
-                    })
-            elif isinstance(result, str) and 'Timeout error' not in result:
-                soup = BeautifulSoup(result, 'lxml')
+async def fetch_page(session, url, timeout=60):
+    """Drop-in replacement for your existing fetch_page function."""
+    return await _scraper_instance.fetch_page(session, url, timeout)
 
-                elements_to_extract = ['p', 'li', 'summary', 'div', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'pre', 'td', 'th', 'a']
-
-                text = ' '.join(element.get_text().strip() for element in soup.find_all(elements_to_extract))
-                cleaned_text = clean_website_data(text)
-
-                if full_text:
-                    if has_proper_sentences(cleaned_text):
-                        summary_or_full_text = rank_sentences(cleaned_text, stopwords, max_sentences=50)  
-                    else:
-                        summary_or_full_text = cleaned_text
-                else:
-                    try:
-                        if has_proper_sentences(cleaned_text):
-                            summary_or_full_text = rank_sentences(cleaned_text, stopwords, max_sentences=20) 
-                        else:
-                            summary_or_full_text = cleaned_text
-                    except Exception as e:
-                        logging.error(f"Failed to rank sentences: {e}")
-                        print(f"Failed to rank sentences for {url}: {e}")
-                        summary_or_full_text = cleaned_text  # Fallback to full text if ranking fails
-
-                author = soup.find('meta', {'name': 'author'})['content'] if soup.find('meta', {'name': 'author'}) else 'Unknown'
-                date_published = soup.find('meta', {'property': 'article:published_time'})['content'] if soup.find('meta', {'property': 'article:published_time'}) else 'Unknown'
-
-                links = []
-
-                response_list.append({
-                    "type": "text",
-                    "text": {
-                        'summary_or_full_text': summary_or_full_text,
-                        'author': author,
-                        'date_published': date_published,
-                        'internal_links': links
-                    }
-                })
-
-                images = soup.select('article img') + soup.select('figure img') + soup.select('section img')
-                
-                for img in images:
-                    img_url = img.get('src')
-                    if img_url:
-                        # Skip data URIs and other non-HTTP/HTTPS sources
-                        if img_url.startswith('data:'):
-                            #logging.warning(f"Skipping data URI image: {img_url[:30]}...")  # Log a warning and skip data URIs
-                            continue
-                        if not img_url.startswith(('http://', 'https://')):
-                            img_url = urljoin(url, img_url)
-                        
-                        try:
-                            # Use a short timeout for HEAD requests
-                            head_timeout = aiohttp.ClientTimeout(total=5, connect=2)
-                            async with session.head(img_url, timeout=head_timeout) as img_response:
-                                if img_response.status == 200 and int(img_response.headers.get('Content-Length', 0)) > 10240:
-                                    response_list.append({
-                                        "type": "image_url",
-                                        "image_url": {
-                                            'url': img_url
-                                        }
-                                    })
-                                # Explicitly release the connection
-                                img_response.release()
-                        except asyncio.TimeoutError:
-                            # Silently skip images that timeout - not critical
-                            pass
-                        except ClientError as e:
-                            logging.error(f"Failed to fetch image: {img_url} - ClientError: {e}")
-                            print(f"Failed to fetch image {img_url}: ClientError - {e}")
-                        except Exception as e:
-                            logging.error(f"Failed to fetch image: {img_url} - Unexpected error: {e}")
-                            print(f"Failed to fetch image {img_url}: Unexpected error - {e}")
-            else:
-                response_list.append({
-                    "type": "text",
-                    "text": {
-                        'url': url,
-                        'error': result
-                    }
-                })
-        except Exception as e:
-            logging.error(f"Error processing page: {e}")
-            print(f"Error processing page {url}: {e}")
-            response_list.append({
-                "type": "text",
-                "text": {
-                    'url': url,
-                    'error': 'An error occurred while processing the page'
-                }
-            })
-
-        return response_list
 
 def upload_document_to_s3(document_content, content_type, document_url):
     document_extension = mimetypes.guess_extension(content_type) or '.bin'
