@@ -1,91 +1,90 @@
-# Configuration Management Plan
+# Configuration Management Plan (Multi-Tenant Architecture)
 
-This document outlines the plan to externalize hardcoded parameters and implement a robust configuration management system for the application.
+This document outlines the plan to externalize hardcoded parameters and implement a robust, multi-tenant configuration management system for the application.
 
-## 1. Identified Hardcoded Parameters
+## 1. Overview
 
-A review of the project files has identified a significant number of hardcoded parameters that should be externalized. These have been categorized by function:
+The initial plan has been revised to support a multi-tenant architecture, allowing different companies to use and customize the application independently. This requires a clear distinction between global settings and tenant-specific configurations that can be managed by each company.
 
-### Credentials and API Keys:
-*   **Odoo Credentials:** `odoo_url`, `odoo_db`, `odoo_login`, and `odoo_password` are hardcoded in both `config.py` and `odoo_functions.py`.
-*   **Proxy URL:** The `proxy_url` in `config.py` contains credentials and should be stored securely.
+## 2. Configuration Tiers
 
-### Service Configuration:
-*   **Slack API Endpoints:** URLs for Slack APIs are hardcoded in `slack_integration.py`.
-*   **Weaviate Pool Size:** The Weaviate connection pool is initialized with a hardcoded size and overflow in `lambda_function.py`.
-*   **NLTK Data Path:** The path to NLTK data is hardcoded in `lambda_function.py`.
-*   **Default Weather Location:** The `get_weather_data` function in `tools.py` defaults to "Fredericton".
+We will implement two tiers of configuration:
 
-### Application Logic and Behavior:
-*   **User and Channel IDs:** A default `chat_id` and `user_id` are hardcoded for email processing in `lambda_function.py`.
-*   **Mute Check User ID:** A specific user ID is hardcoded in the mute check logic in `lambda_function.py`.
-*   **AI Model and Temperature:** The default AI temperature is set in `config.py`, and the default embedding model is specified in `lambda_function.py` and `tools.py`.
-*   **Routing Logic:** The logic for selecting prompts and system behaviors based on `route_name` is hardcoded in `lambda_function.py`.
-*   **User Agents:** The list of `USER_AGENTS` in `config.py` is static and could be managed dynamically.
+*   **Global Configuration:** Core application settings and default values that are consistent across all tenants.
+*   **Tenant-Specific Configuration:** Parameters that can be customized by each company. These settings will override any global defaults.
 
-### Database and Storage:
-*   **DynamoDB Table Names:** Table names for DynamoDB are hardcoded in `config.py`.
-*   **S3 Bucket Names:** S3 bucket names are hardcoded in `config.py`.
+## 3. Tenant-Specific Configurable Parameters
 
-### Prompts and Templates:
-*   **System Prompts:** All system prompts, instructions, and persona definitions are hardcoded in `prompts.py`. These could be managed in a database to allow for easier updates and A/B testing.
+The following parameters have been identified as candidates for tenant-specific configuration:
 
-## 2. Proposed Configuration Management Plan
+### Credentials & API Keys (Managed as Secrets)
+*   Odoo Credentials (`odoo_url`, `odoo_db`, `odoo_login`, `odoo_password`)
+*   Slack Bot Token (`slack_bot_token`)
+*   Telegram Bot Token (`telegram_bot_token`)
+*   ERPNext Credentials (`erpnext_api_key`, `erpnext_api_secret`)
+*   Google API Key & Calendar ID (`google_api_key`, `calendar_id`)
+*   Weaviate Credentials (`weaviate_api_key`, `weaviate_url`)
+*   API keys for AI models (OpenAI, OpenRouter, Cerebras)
 
-To address these issues, a two-part configuration management system is proposed:
+### Branding and Persona
+*   **AI Persona:** The AI's name, persona description, and communication style (from `prompts.py`).
+*   **Company Information:** Details about the tenant's company to be used in system prompts.
 
-1.  **Environment Variables for Secrets:** All sensitive information, such as API keys, passwords, and tokens, will be stored as environment variables.
-2.  **Database for Dynamic Configuration:** A DynamoDB table will be used for non-sensitive parameters that may need to be updated without code changes.
+### Application Behavior
+*   **System Prompts:** All instructional and system prompts from `prompts.py`.
+*   **Default AI Parameters:** Default temperature, model selection for different tasks (e.g., `chitchat` vs. `writing`).
+*   **Routing Logic:** The mapping of intent routes to specific prompt configurations.
+*   **Email Notification Settings:** The Slack channel (`chat_id`) and user (`user_id`) for email notifications.
 
-### 2.1. Create a Configuration Database
+### Data Storage
+*   **S3 Bucket Names:** Tenant-specific bucket names for data isolation.
+*   **DynamoDB Table Naming:** A prefix for all DynamoDB tables to isolate data per tenant.
 
-A new table will be created in DynamoDB to store configuration parameters.
+## 4. Implementation Strategy
 
-*   **TableName:** `ApplicationConfiguration`
-*   **PrimaryKey:** `config_key` (String)
+### 4.1. Secrets Management
+All secrets will be stored in **AWS Secrets Manager**. A unique secret will be created for each tenant, following a consistent naming convention (e.g., `production/tenant/<tenant_id>`).
+
+### 4.2. Tenant Configuration Database
+A new DynamoDB table will be created to store tenant-level configurations.
+
+*   **TableName:** `TenantConfiguration`
+*   **Partition Key:** `tenant_id` (String)
+*   **Sort Key:** `config_key` (String)
 *   **Attributes:**
     *   `config_value` (String, Number, Boolean, or Map)
     *   `description` (String)
-    *   `last_updated` (Timestamp)
 
-### 2.2. Develop a Configuration Loader
+### 4.3. Enhanced Configuration Loader
+The application's entry point (`lambda_function.py`) will be updated to:
+1.  Identify the `tenant_id` from every incoming request.
+2.  Invoke an enhanced `ConfigurationLoader` with the `tenant_id`.
+3.  The loader will:
+    a.  Fetch tenant-specific secrets from AWS Secrets Manager.
+    b.  Fetch all configuration parameters for the `tenant_id` from the `TenantConfiguration` table.
+    c.  Load any global default configurations as a fallback.
+    d.  Merge the configurations, with tenant-specific values taking precedence.
+    e.  Return a comprehensive configuration object to be used for the duration of the request.
 
-A new function will be created to load all configurations at startup. This function will:
-1.  Load secrets from environment variables.
-2.  Fetch the remaining configuration parameters from the `ApplicationConfiguration` table in DynamoDB.
-3.  Cache the configurations to avoid repeated database calls on every invocation.
-
-### 2.3. Refactor the Application
-
-The application code will be refactored to use the new configuration loader instead of hardcoded values.
-
-### 2.4. Externalize Prompts
-
-All prompts currently in `prompts.py` will be moved into the `ApplicationConfiguration` table.
-
-### 2.5. Architecture Diagram
+## 5. Revised Architecture Diagram
 
 ```mermaid
 graph TD
-    subgraph Application
-        A[Lambda Function] --> B{Configuration Loader};
+    subgraph "Incoming Request"
+        A[Event with tenant_id] --> B[Lambda Function];
     end
 
-    subgraph ConfigurationSources
-        C[Environment Variables] --> B;
-        D[DynamoDB: ApplicationConfiguration] --> B;
+    subgraph "Configuration Loading"
+        B -- "1. Get tenant_id" --> C{Configuration Loader};
+        C -- "2. Fetch Secrets" --> D[AWS Secrets Manager];
+        C -- "3. Fetch Config" --> E[DynamoDB: TenantConfiguration];
+        D -- "Tenant Secrets" --> C;
+        E -- "Tenant-specific Params" --> C;
+        C -- "4. Merged Config" --> F{Configuration Object};
     end
 
-    B --> E{Configuration Object};
-
-    subgraph ApplicationModules
-        F[odoo_functions.py] --> E;
-        G[slack_integration.py] --> E;
-        H[prompts.py] --> E;
-        I[tools.py] --> E;
+    subgraph "Application Logic"
+        B -- "Uses" --> F;
+        G[Application Modules] -- "Uses" --> F;
+        B --> G;
     end
-
-    A --> F;
-    A --> G;
-    A --> H;
-    A --> I;
