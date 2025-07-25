@@ -443,7 +443,7 @@ def ask_openai_o1(prompt):
         return None
 
 
-def make_cerebras_call(conversations, model="llama-4-scout-17b-16e-instruct", max_tokens=2500):
+def make_cerebras_call(conversations, model="llama-4-scout-17b-16e-instruct", max_tokens=5500):
     """
     Make a Cerebras API call similar to OpenAI format
     

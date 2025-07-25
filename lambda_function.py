@@ -81,7 +81,7 @@ from nltk.tokenize import sent_tokenize, word_tokenize
 
 from conversation import (
     make_text_conversation, make_vision_conversation, make_audio_conversation, make_cerebras_conversation,
-    make_openai_vision_call, make_openai_audio_call, ask_openai_o1, make_openrouter_call,
+    make_openai_vision_call, make_openai_audio_call, ask_openai_o1, make_openrouter_call, make_cerebras_call,
     serialize_chat_completion_message, handle_message_content, handle_tool_calls
 )
 
@@ -228,7 +228,7 @@ def lambda_handler(event, context):
         # REFRESH TYPING INDICATOR - since we're in the backend now
         if source == 'slack':
             print(f"Starting typing indication for channel {chat_id}") 
-            send_typing_indicator(chat_id, duration=60, method="simulation")
+            send_typing_indicator(chat_id, duration=10, method="simulation")
 
         user_id = processed_data['user_id']
         user_name = processed_data['user_name']
@@ -280,6 +280,11 @@ def lambda_handler(event, context):
             assistant_text = prompts['assistant_text'] + " " + prompts['instruct_writing']
             summary_len = 10
             full_text_len = 5 
+        elif route_name == 'research':
+            system_text = prompts['system_text']
+            assistant_text = prompts['assistant_text'] + " " + prompts['instruct_research'] + " " + prompts['instruct_Context_Clarification'] + " " + prompts['instruct_Problem_Solving']
+            summary_len = 10
+            full_text_len = 5 
         elif route_name == 'odoo_erp':
             system_text = prompts['system_text']
             assistant_text = prompts['assistant_text'] + " " + prompts['odoo_search'] + " " + prompts['instruct_Context_Clarification']
@@ -288,6 +293,7 @@ def lambda_handler(event, context):
             relevant = 0
             ai_temperature = 0.1   
         else:
+            route_name = 'chitchat'
             system_text = prompts['system_text']
             assistant_text = prompts['assistant_text'] + " " + prompts['odoo_search'] + " " + prompts['instruct_Context_Clarification'] + " " + prompts['instruct_chain_of_thought']
             summary_len = 10
@@ -368,10 +374,11 @@ def lambda_handler(event, context):
                                                 all_messages, text, models, image_urls)
             response_message = make_openai_vision_call(client, conversation)
         else:
-            if route_name == 'chitchat':
+            if route_name in ['chitchat', 'research']:
                 # Regular vision conversation for text-only
                 conversation = make_cerebras_conversation(system_text, assistant_text, display_name, all_relevant_messages, msg_history_summary, all_messages, text, models)
-                response_message = make_openrouter_call(openrouter_client, conversation)
+                #response_message = make_openrouter_call(openrouter_client, conversation)
+                response_message = make_cerebras_call(conversation)
             else:
                 conversation = make_vision_conversation(system_text, assistant_text, display_name, all_relevant_messages, msg_history_summary, all_messages, text, models)
                 response_message = make_openai_vision_call(client, conversation)
@@ -400,7 +407,7 @@ def lambda_handler(event, context):
         if has_tool_calls:
             # REFRESH TYPING for tool processing
             if source == 'slack' and chat_id:
-                send_typing_indicator(chat_id, duration=20)
+                send_typing_indicator(chat_id, duration=10)
 
             conversation_with_tool_responses = handle_tool_calls(
                 response_message, available_functions, chat_id, conversation, thread_ts
@@ -413,8 +420,9 @@ def lambda_handler(event, context):
                 # Use vision for image-based conversations
                 response_message = make_openai_vision_call(client, conversation_with_tool_responses)
             else:
-                if route_name == 'chitchat':
-                    response_message = make_openrouter_call(openrouter_client, conversation_with_tool_responses)
+                if route_name in ['chitchat', 'research']:
+                    #response_message = make_openrouter_call(openrouter_client, conversation_with_tool_responses)
+                    response_message = make_cerebras_call(conversation_with_tool_responses)
                 else:
                     response_message = make_openai_vision_call(client, conversation_with_tool_responses)
         else:
