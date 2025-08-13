@@ -1,708 +1,206 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Maria AI Assistant Documentation</title>
-    <style>
-        :root {
-            --primary-color: #4a6fa5;
-            --secondary-color: #6c757d;
-            --light-color: #f8f9fa;
-            --dark-color: #343a40;
-            --link-color: #0366d6;
-            --link-hover-color: #0056b3;
-            --code-bg: #f6f8fa;
-            --border-color: #e1e4e8;
-        }
-        
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-            line-height: 1.6;
-            color: var(--dark-color);
-            background-color: white;
-            max-width: 100%;
-            overflow-x: hidden;
-        }
-        
-        .container {
-            display: flex;
-            min-height: 100vh;
-        }
-        
-        .sidebar {
-            width: 280px;
-            background-color: var(--light-color);
-            padding: 2rem;
-            border-right: 1px solid var(--border-color);
-            position: fixed;
-            top: 0;
-            bottom: 0;
-            left: 0;
-            overflow-y: auto;
-        }
-        
-        .sidebar h3 {
-            margin-bottom: 1rem;
-            color: var(--primary-color);
-        }
-        
-        .sidebar ul {
-            list-style-type: none;
-        }
-        
-        .sidebar ul li {
-            margin-bottom: 0.5rem;
-        }
-        
-        .sidebar a {
-            color: var(--dark-color);
-            text-decoration: none;
-            display: block;
-            padding: 0.25rem 0;
-            transition: all 0.2s;
-        }
-        
-        .sidebar a:hover {
-            color: var(--primary-color);
-            padding-left: 0.25rem;
-        }
-        
-        .content {
-            margin-left: 280px;
-            padding: 2rem;
-            width: calc(100% - 280px);
-            max-width: 1000px;
-        }
-        
-        h1, h2, h3, h4, h5, h6 {
-            margin-top: 1.5rem;
-            margin-bottom: 1rem;
-            color: var(--dark-color);
-        }
-        
-        h1 {
-            font-size: 2.5rem;
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 0.5rem;
-            margin-bottom: 1.5rem;
-        }
-        
-        h2 {
-            font-size: 2rem;
-            margin-top: 2.5rem;
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 0.5rem;
-        }
-        
-        h3 {
-            font-size: 1.5rem;
-            margin-top: 2rem;
-            color: var(--primary-color);
-        }
-        
-        h4 {
-            font-size: 1.25rem;
-            margin-top: 1.5rem;
-        }
-        
-        p {
-            margin-bottom: 1rem;
-        }
-        
-        a {
-            color: var(--link-color);
-            text-decoration: none;
-        }
-        
-        a:hover {
-            color: var(--link-hover-color);
-            text-decoration: underline;
-        }
-        
-        pre {
-            background-color: var(--code-bg);
-            padding: 1rem;
-            border-radius: 5px;
-            margin-bottom: 1rem;
-            overflow-x: auto;
-        }
-        
-        code {
-            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-            font-size: 0.9em;
-            background-color: var(--code-bg);
-            padding: 0.2rem 0.4rem;
-            border-radius: 3px;
-        }
-        
-        pre code {
-            padding: 0;
-            background-color: transparent;
-        }
-        
-        .module-list {
-            list-style-type: none;
-            padding-left: 1rem;
-        }
-        
-        .module-list li {
-            margin-bottom: 1rem;
-        }
-        
-        .module-list li strong {
-            color: var(--primary-color);
-        }
-        
-        ul, ol {
-            padding-left: 2rem;
-            margin-bottom: 1rem;
-        }
-        
-        li {
-            margin-bottom: 0.5rem;
-        }
-        
-        blockquote {
-            border-left: 4px solid var(--secondary-color);
-            padding-left: 1rem;
-            margin-left: 0;
-            margin-bottom: 1rem;
-            color: var(--secondary-color);
-        }
-        
-        table {
-            border-collapse: collapse;
-            width: 100%;
-            margin-bottom: 1rem;
-        }
-        
-        table, th, td {
-            border: 1px solid var(--border-color);
-        }
-        
-        th, td {
-            padding: 0.5rem;
-            text-align: left;
-        }
-        
-        th {
-            background-color: var(--light-color);
-        }
-        
-        .function-signature {
-            font-weight: bold;
-            color: var(--primary-color);
-        }
-        
-        .back-to-top {
-            position: fixed;
-            bottom: 2rem;
-            right: 2rem;
-            background-color: var(--primary-color);
-            color: white;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            transition: all 0.3s;
-            text-decoration: none;
-        }
-        
-        .back-to-top:hover {
-            background-color: var(--link-hover-color);
-        }
-        
-        @media (max-width: 1024px) {
-            .sidebar {
-                width: 240px;
-            }
-            
-            .content {
-                margin-left: 240px;
-                width: calc(100% - 240px);
-            }
-        }
-        
-        @media (max-width: 768px) {
-            .container {
-                flex-direction: column;
-            }
-            
-            .sidebar {
-                width: 100%;
-                position: relative;
-                padding: 1rem;
-                border-right: none;
-                border-bottom: 1px solid var(--border-color);
-            }
-            
-            .content {
-                margin-left: 0;
-                width: 100%;
-                padding: 1rem;
-            }
-        }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Maria — External Overview</title>
+  <meta name="description" content="Business overview of Maria, an AI assistant for enterprise workflows. This document is self-contained, external-safe, and free of source code or internal identifiers." />
+  <style>
+    :root {
+      --text: #1f2937;
+      --muted: #4b5563;
+      --link: #0b69a3;
+      --bg: #ffffff;
+      --section: #f7fafc;
+      --border: #e5e7eb;
+    }
+    html, body { margin: 0; padding: 0; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; line-height: 1.6; color: var(--text); background: var(--bg); }
+    main { max-width: 960px; margin: 0 auto; padding: 2rem 1rem; }
+    header { margin-bottom: 1rem; }
+    h1 { font-size: 2rem; margin: 0; }
+    .lead { font-size: 1.125rem; color: var(--muted); margin-top: 0.5rem; }
+    h2 { margin-top: 2rem; padding-top: 0.5rem; border-top: 1px solid var(--border); }
+    h3 { margin-top: 1.25rem; color: #0d3b66; }
+    p { margin: 0.75rem 0; }
+    ul { padding-left: 1.25rem; margin: 0.5rem 0 1rem; }
+    li { margin: 0.25rem 0; }
+    a { color: var(--link); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .section { margin-top: 1.75rem; background: var(--section); padding: 1rem; border: 1px solid var(--border); border-radius: 8px; }
+    .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.75rem; margin: 0.75rem 0; }
+    .kpi { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; }
+    .small { color: var(--muted); font-size: 0.95rem; }
+    footer { margin-top: 2rem; border-top: 1px solid var(--border); padding-top: 1rem; color: var(--muted); }
+    @media print { a::after { content: " (" attr(href) ")"; font-size: 0.9em; } }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <aside class="sidebar">
-            <h3>Table of Contents</h3>
-            <ul>
-                <li><a href="#overview">Overview</a></li>
-                <li><a href="#system-architecture">System Architecture</a></li>
-                <li>
-                    <a href="#functionality">Functionality</a>
-                    <ul>
-                        <li><a href="#communication">Communication</a></li>
-                        <li><a href="#erp-integration">ERP Integration</a></li>
-                        <li><a href="#information-retrieval">Information Retrieval</a></li>
-                        <li><a href="#document-processing">Document Processing</a></li>
-                        <li><a href="#message-management">Message Management</a></li>
-                        <li><a href="#user-management">User Management</a></li>
-                    </ul>
-                </li>
-                <li>
-                    <a href="#function-descriptions">Function Descriptions</a>
-                    <ul>
-                        <li><a href="#lambda-function">Lambda Function</a></li>
-                        <li><a href="#conversation-management">Conversation Management</a></li>
-                        <li><a href="#storage-operations">Storage Operations</a></li>
-                        <li><a href="#slack-integration">Slack Integration</a></li>
-                        <li><a href="#media-processing">Media Processing</a></li>
-                        <li><a href="#erp-integrations">ERP Integrations</a></li>
-                        <li><a href="#external-services">External Services</a></li>
-                        <li><a href="#web-and-search">Web and Search</a></li>
-                        <li><a href="#document-management">Document Management</a></li>
-                    </ul>
-                </li>
-                <li><a href="#routing-configuration">Routing Configuration</a></li>
-                <li><a href="#prompt-configuration">Prompt Configuration</a></li>
-                <li><a href="#invocation-flow">Invocation Flow</a></li>
-                <li><a href="#configuration">Configuration</a></li>
-                <li><a href="#conclusion">Conclusion</a></li>
-            </ul>
-        </aside>
-
-        <main class="content">
-            <h1 id="overview">Maria: AI Executive Assistant Documentation</h1>
-
-            <p>Maria is an AI executive assistant designed to facilitate communication and task execution within a Slack workspace. Built on Claude 3.7 Sonnet, Maria presents herself as a friendly Canadian lady working at Cerenyi AI. The system integrates with various services including Slack, ERPNext, Amazon, Google APIs, and more to provide a wide range of functionalities.</p>
-
-            <h2 id="system-architecture">System Architecture</h2>
-
-            <p>The application consists of several interconnected modules:</p>
-
-            <h3>Core Modules</h3>
-
-            <ol class="module-list">
-                <li><strong>lambda_function.py</strong>: Main entry point that handles incoming events from Slack</li>
-                <li><strong>conversation.py</strong>: Manages conversation formatting and communication with OpenAI APIs</li>
-                <li><strong>storage.py</strong>: Handles data persistence in DynamoDB and Weaviate</li>
-                <li><strong>slack_integration.py</strong>: Manages interactions with the Slack API</li>
-                <li><strong>media_processing.py</strong>: Handles audio, image, and document processing</li>
-                <li><strong>nlp_utils.py</strong>: Provides natural language processing utilities</li>
-                <li><strong>extservices.py</strong>: Interfaces with external services (calendar, weather, etc.)</li>
-                <li><strong>tools.py</strong>: Defines the available tools and their parameters</li>
-                <li><strong>prompts.py</strong>: Contains system prompts and instructions for different scenarios</li>
-                <li><strong>config.py</strong>: Contains configuration parameters and API connections</li>
-                <li><strong>routes_layer.json</strong>: Defines routing logic based on user utterances</li>
-                <li><strong>erpnext_functions.py</strong>: Provides integration with ERPNext ERP system</li>
-                <li><strong>odoo_functions.py</strong>: Provides integration with Odoo ERP system</li>
-                <li><strong>amazon_functions.py</strong>: Provides integration with Amazon product search</li>
-            </ol>
-
-            <h2 id="functionality">Functionality</h2>
-
-            <h3 id="communication">1. Communication</h3>
-
-            <p>Maria can communicate through various channels:</p>
-
-            <h4>Text Communication</h4>
-            <ul>
-                <li>Respond to direct messages in Slack</li>
-                <li>Reply to mentions in channels</li>
-                <li>Support for thread replies</li>
-            </ul>
-
-            <h4>Audio Communication</h4>
-            <ul>
-                <li>Process incoming audio messages using transcription</li>
-                <li>Generate audio responses using text-to-speech</li>
-                <li>Upload audio responses to Slack</li>
-            </ul>
-
-            <h4>Visual Communication</h4>
-            <ul>
-                <li>Process and analyze images sent by users</li>
-                <li>Respond to messages with image content</li>
-                <li>Upload and share visual content</li>
-            </ul>
-
-            <h3 id="erp-integration">2. ERP Integration</h3>
-
-            <p>Maria provides access to ERP systems:</p>
-
-            <h4>ERPNext Integration</h4>
-            <ul>
-                <li>List available document types (<code>erpnext_list_doctypes</code>)</li>
-                <li>List fields for a document type (<code>erpnext_list_doctype_fields</code>)</li>
-                <li>Fetch documents based on criteria (<code>erpnext_get_documents</code>)</li>
-            </ul>
-
-            <h4>Odoo Integration</h4>
-            <ul>
-                <li>Get mapped models and their fields (<code>odoo_get_mapped_models</code>, <code>odoo_get_mapped_fields</code>)</li>
-                <li>Create, read, update, and delete records (<code>odoo_create_record</code>, <code>odoo_fetch_records</code>, <code>odoo_update_record</code>, <code>odoo_delete_record</code>)</li>
-            </ul>
-
-            <h3 id="information-retrieval">3. Information Retrieval</h3>
-
-            <p>Maria can fetch information from various sources:</p>
-
-            <h4>Web Search</h4>
-            <ul>
-                <li>Google search with advanced operators (<code>google_search</code>)</li>
-                <li>Retrieve and analyze content from websites (<code>browse_internet</code>)</li>
-                <li>Process and summarize web content</li>
-            </ul>
-
-            <h4>Weather Data</h4>
-            <ul>
-                <li>Get coordinates for a location (<code>get_coordinates</code>)</li>
-                <li>Retrieve weather data for a location (<code>get_weather_data</code>)</li>
-            </ul>
-
-            <h4>Product Search</h4>
-            <ul>
-                <li>Search for products on Amazon (<code>search_and_format_products</code>)</li>
-            </ul>
-
-            <h3 id="document-processing">4. Document Processing</h3>
-
-            <p>Maria can work with various document formats:</p>
-
-            <h4>File Operations</h4>
-            <ul>
-                <li>List files in S3 storage (<code>list_files</code>)</li>
-                <li>Download and read files from Slack</li>
-                <li>Convert content to PDF and share (<code>send_as_pdf</code>)</li>
-            </ul>
-
-            <h4>Document Analysis</h4>
-            <ul>
-                <li>Extract text from PDFs, Word documents, CSV files</li>
-                <li>Summarize document content</li>
-                <li>Upload documents to S3 for storage</li>
-            </ul>
-
-            <h3 id="message-management">5. Message Management</h3>
-
-            <p>Maria handles message routing and maintenance:</p>
-
-            <h4>Routing</h4>
-            <ul>
-                <li>Route messages based on context and content (<code>routes_layer.json</code>)</li>
-                <li>Invoke specific handlers based on message type</li>
-            </ul>
-
-            <h4>Message History</h4>
-            <ul>
-                <li>Save and retrieve message history (<code>save_message_weaviate</code>, <code>get_last_messages_weaviate</code>)</li>
-                <li>Find relevant past messages (<code>get_relevant_messages</code>)</li>
-                <li>Get specific messages by ID (<code>get_message_by_sort_id</code>, <code>get_messages_in_range</code>)</li>
-            </ul>
-
-            <h3 id="user-management">6. User Management</h3>
-
-            <p>Maria interacts with Slack users:</p>
-
-            <h4>User Operations</h4>
-            <ul>
-                <li>Get user details (<code>get_users</code>)</li>
-                <li>Send messages to specific users</li>
-                <li>Manage mute status (<code>manage_mute_status</code>)</li>
-            </ul>
-
-            <h4>Channel Operations</h4>
-            <ul>
-                <li>Get channel information (<code>get_channels</code>)</li>
-                <li>Send messages to channels</li>
-            </ul>
-
-            <h2 id="function-descriptions">Function Descriptions</h2>
-
-            <h3 id="lambda-function">Lambda Function (Main Entry Point)</h3>
-
-            <p>The <code>lambda_handler</code> in <code>lambda_function.py</code> is the main entry point that:</p>
-            <ol>
-                <li>Parses incoming Slack events</li>
-                <li>Retrieves message history</li>
-                <li>Processes any attached files or media</li>
-                <li>Routes the message to the appropriate handler</li>
-                <li>Generates and sends responses</li>
-            </ol>
-
-            <p>Key functions:</p>
-
-            <pre><code># Invocation: AWS Lambda trigger from Slack event
-def lambda_handler(event, context):
-    # Process Slack event, generate response, and invoke appropriate functions</code></pre>
-
-            <h3 id="conversation-management">Conversation Management</h3>
-
-            <p>In <code>conversation.py</code>, conversation formats are defined:</p>
-
-            <pre><code># Format a conversation with text only
-def make_text_conversation(system_text, assistant_text, display_name, msg_history_summary, all_messages, text)
-
-# Format a conversation with images
-def make_vision_conversation(system_text, assistant_text, display_name, all_relevant_messages, msg_history_summary, all_messages, text, image_urls=None)
-
-# Format a conversation with audio
-def make_audio_conversation(system_text, assistant_text, display_name, all_relevant_messages, msg_history_summary, all_messages, text, audio_urls=None)
-
-# Make API calls to OpenAI
-def make_openai_vision_call(client, conversations)
-def make_openai_audio_call(client, conversations)
-def ask_openai_o1(prompt)</code></pre>
-
-            <h3 id="storage-operations">Storage Operations</h3>
-
-            <p>In <code>storage.py</code>, database interactions are defined:</p>
-
-            <pre><code># Weaviate operations
-def save_message_weaviate(collection_name, chat_id, text, thread=None, image_urls=None)
-def get_last_messages_weaviate(collection_name, chat_id, num_messages)
-def get_relevant_messages(collection_name, chat_id, query_text, num_results)
-
-# DynamoDB operations
-def save_message(table, chat_id, text, role, thread=None, image_urls=None)
-def get_last_messages(table, chat_id, num_messages)
-def get_message_by_sort_id(role, chat_id, sort_id)
-def get_messages_in_range(chat_id, start_sort_id, end_sort_id)
-
-# User and channel management
-def get_users(user_id=None)
-def get_channels(id=None)
-def manage_mute_status(chat_id, status=None)</code></pre>
-
-            <h3 id="slack-integration">Slack Integration</h3>
-
-            <p>In <code>slack_integration.py</code>, Slack API interactions are defined:</p>
-
-            <pre><code># Message operations
-def send_slack_message(message, channel, ts=None)
-def send_audio_to_slack(text, chat_id=None, ts=None)
-def send_file_to_slack(file_path, chat_id, title, ts=None)
-
-# User and channel operations
-def update_slack_users()
-def update_slack_conversations()
-def get_slack_user_name(user_id)</code></pre>
-
-            <h3 id="media-processing">Media Processing</h3>
-
-            <p>In <code>media_processing.py</code>, multimedia operations are defined:</p>
-
-            <pre><code># Audio operations
-def text_to_speech(text, file_suffix=".mp3")
-def transcribe_speech_from_memory(audio_stream)
-def download_audio_to_memory(url)
-def process_url(url)
-def transcribe_multiple_urls(urls)
-def convert_to_wav_in_memory(m4a_data)
-
-# Image operations
-def upload_image_to_s3(image_url, bucket_name)</code></pre>
-
-            <h3 id="erp-integrations">ERP Integrations</h3>
-
-            <h4>ERPNext Functions</h4>
-
-            <p>In <code>erpnext_functions.py</code>, ERPNext operations are defined:</p>
-
-            <pre><code>def erpnext_get_documents(doc_type, document_name=None, fields=None, filters=None, limit_page_length=20, limit_start=0)
-def erpnext_list_doctypes()
-def erpnext_list_doctype_fields(doctype_name)</code></pre>
-
-            <h4>Odoo Functions</h4>
-
-            <p>In <code>odoo_functions.py</code>, Odoo operations are defined:</p>
-
-            <pre><code>def authenticate(odoo_url, odoo_db, odoo_login, odoo_password)
-def odoo_get_mapped_models(include_fields=True, model_name=None)
-def odoo_get_mapped_fields(model)
-def odoo_fetch_records(external_model, filters=None)
-def odoo_create_record(external_model, **kwargs)
-def odoo_update_record(external_model, record_id, **kwargs)
-def odoo_delete_record(external_model, record_id)</code></pre>
-
-            <h3 id="external-services">External Services</h3>
-
-            <p>In <code>extservices.py</code>, external service integrations are defined:</p>
-
-            <pre><code>def calendar_operations(access_token, calendar_id, operation, event_id=None, event_data=None)
-def exchange_auth_code_for_tokens(client_id, client_secret, authorization_code, redirect_uri)
-def get_coordinates(location_name)
-def get_weather_data(location_name='Whitehorse')</code></pre>
-
-            <h3 id="web-and-search">Web and Search</h3>
-
-            <p>In <code>lambda_function.py</code>, web interaction functions are defined:</p>
-
-            <pre><code>def google_search(search_term, before=None, after=None, intext=None, allintext=None, and_condition=None, must_have=None)
-def browse_internet(urls, full_text=False)
-async def get_web_pages(urls, full_text=False, max_concurrent_requests=5)</code></pre>
-
-            <h3 id="document-management">Document Management</h3>
-
-            <p>In <code>lambda_function.py</code>, document management functions are defined:</p>
-
-            <pre><code>def send_as_pdf(text, chat_id, title, ts=None)
-def list_files(folder_prefix='uploads')
-def download_and_read_file(url, content_type)</code></pre>
-
-            <h2 id="routing-configuration">Routing Configuration</h2>
-
-            <p>The <code>routes_layer.json</code> file defines routing patterns for different types of user inquiries:</p>
-
-            <ol>
-                <li><strong>chitchat</strong>: Casual conversation handling</li>
-                <li><strong>research</strong>: Information retrieval inquiries</li>
-                <li><strong>writing</strong>: Content generation requests</li>
-                <li><strong>numerical_analysis</strong>: Computational and data analysis requests</li>
-                <li><strong>navigation</strong>: Location and direction-related inquiries</li>
-                <li><strong>odoo_erp</strong>: ERP-related queries and operations</li>
-            </ol>
-
-            <h2 id="prompt-configuration">Prompt Configuration</h2>
-
-            <p>The <code>prompts.py</code> file contains different instruction sets for various scenarios:</p>
-
-            <ol>
-                <li><strong>system_text</strong>: Primary system instructions</li>
-                <li><strong>assistant_text</strong>: Basic assistant persona and guidelines</li>
-                <li><strong>speech_instruction</strong>: Guidelines for generating natural speech</li>
-                <li><strong>instruct_basic</strong>: Basic conversation instructions</li>
-                <li><strong>odoo_search</strong>: ERP search instructions</li>
-                <li><strong>instruct_Problem_Solving</strong>: Problem-solving approach</li>
-                <li><strong>instruct_Context_Clarification</strong>: Context gathering guidelines</li>
-                <li><strong>instruct_chain_of_thought</strong>: Reasoning guidelines</li>
-                <li><strong>instruct_research</strong>: Research methodology</li>
-                <li><strong>instruct_writing</strong>: Writing style guidelines</li>
-                <li><strong>email_instructions</strong>: Email handling guidelines</li>
-            </ol>
-
-            <h2 id="invocation-flow">Invocation Flow</h2>
-
-            <ol>
-                <li>
-                    <strong>Initial Trigger</strong>:
-                    <ul>
-                        <li>Slack event (message, mention) is sent to the AWS Lambda function</li>
-                    </ul>
-                </li>
-                <li>
-                    <strong>Event Processing</strong>:
-                    <ul>
-                        <li>Lambda extracts user, channel, and message information</li>
-                        <li>Processes any attached media (images, audio, documents)</li>
-                    </ul>
-                </li>
-                <li>
-                    <strong>Message Routing</strong>:
-                    <ul>
-                        <li>Message is categorized using the semantic router</li>
-                        <li>Appropriate system prompts are selected</li>
-                    </ul>
-                </li>
-                <li>
-                    <strong>Context Building</strong>:
-                    <ul>
-                        <li>Relevant conversation history is retrieved</li>
-                        <li>Related messages are found</li>
-                    </ul>
-                </li>
-                <li>
-                    <strong>Response Generation</strong>:
-                    <ul>
-                        <li>Conversation is formatted and sent to OpenAI</li>
-                        <li>Response is received and processed</li>
-                    </ul>
-                </li>
-                <li>
-                    <strong>Tool Execution</strong>:
-                    <ul>
-                        <li>If tools are called, they are executed in parallel</li>
-                        <li>Results are incorporated into the conversation</li>
-                    </ul>
-                </li>
-                <li>
-                    <strong>Response Delivery</strong>:
-                    <ul>
-                        <li>Final response is formatted and sent to Slack</li>
-                        <li>Message is saved to the database for future reference</li>
-                    </ul>
-                </li>
-            </ol>
-
-            <h2 id="configuration">Configuration</h2>
-
-            <p>The <code>config.py</code> file contains environment variables and service connections:</p>
-
-            <ol>
-                <li><strong>API Keys</strong>: Various service API keys</li>
-                <li><strong>Database Connections</strong>: DynamoDB and Weaviate configurations</li>
-                <li><strong>Proxy Settings</strong>: Web proxy configuration</li>
-                <li><strong>User Agents</strong>: List of user agents for web requests</li>
-                <li><strong>Service URLs</strong>: Endpoints for various services</li>
-            </ol>
-
-            <h2 id="conclusion">Conclusion</h2>
-
-            <p>Maria is a comprehensive AI assistant solution that integrates with various services to provide a wide range of functionalities. The modular design allows for easy maintenance and extension, while the robust conversation handling ensures natural interactions with users.</p>
-
-            <p>The system's ability to process and generate text, audio, and images, combined with its integration with ERP systems, web search, and document processing, makes it a versatile tool for enterprise environments.</p>
-
-            <a href="#" class="back-to-top">↑</a>
-        </main>
+<main>
+  <header>
+    <h1>Maria: Enterprise AI Assistant</h1>
+    <p class="lead">An external, self-contained overview of capabilities, value, security posture, and sector-specific use cases. No source code, internal file names, or proprietary details are included.</p>
+  </header>
+
+  <section id="executive-summary" class="section">
+    <h2>Executive Summary</h2>
+    <p>Maria is an enterprise AI assistant that helps teams communicate, find information, and orchestrate routine processes across business systems. Designed for secure and responsible use, Maria fits naturally within existing collaboration workflows and supports outcome-driven assistance: faster responses, clearer decisions, and streamlined handoffs between people and systems. Organizations use Maria to reduce manual effort, improve service quality, and accelerate time to insight while maintaining control over data handling and privacy.</p>
+  </section>
+
+  <section id="key-capabilities" class="section">
+    <h2>Key Capabilities</h2>
+    <ul>
+      <li><strong>Omnichannel assistance:</strong> Meet users in their preferred channels, including chat, voice, and simple forms.</li>
+      <li><strong>Information retrieval and summarization:</strong> Access approved content and public web sources, then provide concise, contextual answers with references where appropriate.</li>
+      <li><strong>Process orchestration:</strong> Guide common workflows, collect inputs, trigger standardized steps, and draft follow-ups for human review.</li>
+      <li><strong>Enterprise integrations:</strong> Connect to widely used collaboration tools and major business platforms to streamline everyday tasks.</li>
+      <li><strong>Privacy-first design:</strong> Built around least-privilege access, configurable retention, and transparent handling of sensitive data.</li>
+      <li><strong>Configurable policies:</strong> Tailor behavior to organizational rules, including content boundaries, language tone, and escalation paths.</li>
+      <li><strong>Extensibility:</strong> Add new tasks, data sources, and workflows through modular configuration and well-defined integration points.</li>
+    </ul>
+
+    <div class="kpis" aria-label="Illustrative outcomes">
+      <div class="kpi">
+        <strong>Response time</strong>
+        <p class="small">Reduce average time-to-answer for routine requests by consolidating search and summarization.</p>
+      </div>
+      <div class="kpi">
+        <strong>Process completion</strong>
+        <p class="small">Improve on-time completion of standard workflows via guided steps and automated reminders.</p>
+      </div>
+      <div class="kpi">
+        <strong>Knowledge reuse</strong>
+        <p class="small">Increase reuse of institutional knowledge through centralized retrieval and concise summaries.</p>
+      </div>
     </div>
+  </section>
 
-    <script>
-        // Smooth scrolling for anchor links
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                e.preventDefault();
-                
-                document.querySelector(this.getAttribute('href')).scrollIntoView({
-                    behavior: 'smooth'
-                });
-            });
-        });
-        
-        // Show/hide back to top button based on scroll position
-        window.addEventListener('scroll', function() {
-            const backToTopButton = document.querySelector('.back-to-top');
-            if (window.pageYOffset > 300) {
-                backToTopButton.style.display = 'flex';
-            } else {
-                backToTopButton.style.display = 'none';
-            }
-        });
-        
-        // Initialize - hide back to top button initially
-        document.querySelector('.back-to-top').style.display = 'none';
-    </script>
+  <section id="solution-overview" class="section">
+    <h2>Solution Overview</h2>
+    <p>Maria brings together three core elements to deliver value:</p>
+    <ul>
+      <li><strong>Channels:</strong> Users interact through familiar collaboration interfaces. Maria supports conversational interactions (chat or voice) and structured inputs (forms) to gather the right details at the right time.</li>
+      <li><strong>Orchestration:</strong> Conversations are guided to clarify intent, apply policies, and route requests to the appropriate actions or information sources. Maria captures context and maintains continuity to reduce repetitive questions.</li>
+      <li><strong>Knowledge and integrations:</strong> Maria retrieves approved information and interfaces with enterprise systems to present results or draft next steps. Connections emphasize safety, auditability, and control.</li>
+    </ul>
+    <p class="small">Conceptually: users engage via collaboration interfaces; Maria orchestrates the request; knowledge and enterprise systems contribute information or actions; results are returned as clear, verifiable outputs for human decision-making.</p>
+  </section>
+
+  <section id="industry-use-cases" class="section">
+    <h2>Industry Use Cases</h2>
+
+    <h3>Manufacturing</h3>
+    <ul>
+      <li>Summarize production status and exceptions for shift handovers, highlighting actions and owners.</li>
+      <li>Draft supplier communications for parts availability or order confirmations, ready for review and send.</li>
+      <li>Deliver quick-reference guidance on safety policies and procedures to floor supervisors and leads.</li>
+      <li>Aggregate quality observations from approved sources and produce a daily snapshot for managers.</li>
+    </ul>
+
+    <h3>Retail & eCommerce</h3>
+    <ul>
+      <li>Assist support teams with product information, warranty details, and clear answers sourced from approved content.</li>
+      <li>Generate inventory and order status summaries for store or fulfillment operations, emphasizing exceptions.</li>
+      <li>Draft campaign copy variations and category descriptions for merchandising teams to refine and approve.</li>
+      <li>Provide concise rollups of customer feedback themes to inform continuous improvements.</li>
+    </ul>
+
+    <h3>Financial Services</h3>
+    <ul>
+      <li>Offer policy and procedure Q&A for internal teams with citations to approved content sources.</li>
+      <li>Orchestrate checklist-driven tasks for periodic reviews and reminders across teams.</li>
+      <li>Summarize market or regulatory updates from allowed public sources for internal briefings.</li>
+      <li>Create consistent, auditable responses to common internal queries with configurable guardrails.</li>
+    </ul>
+
+    <h3>Healthcare</h3>
+    <ul>
+      <li>Support non-clinical operations such as scheduling coordination and intake communications.</li>
+      <li>Provide policy and compliance guidance lookup for staff, tailored to role-based access.</li>
+      <li>Summarize supply and logistics status for administrators, highlighting bottlenecks and next steps.</li>
+      <li>Draft internal announcements and FAQs for change management and staff enablement.</li>
+    </ul>
+
+    <h3>Logistics & Supply Chain</h3>
+    <ul>
+      <li>Produce shipment and delivery status rollups for daily standups across regions or lanes.</li>
+      <li>Assist triage of exceptions by gathering context and suggesting next-best-actions for human approval.</li>
+      <li>Generate KPI snapshots for fulfillment and on-time performance with clear notes and owners.</li>
+      <li>Prepare partner-ready updates consolidating data from approved internal sources.</li>
+    </ul>
+
+    <h3>Public Sector</h3>
+    <ul>
+      <li>Draft program updates, internal FAQs, and staff briefings based on approved policies.</li>
+      <li>Enable knowledge lookup across public guidance and internal documents with clear citations.</li>
+      <li>Coordinate standard operating procedures by prompting for inputs and logging confirmations.</li>
+      <li>Create accessible summaries to support service delivery and community engagement.</li>
+    </ul>
+
+    <h3>Professional Services</h3>
+    <ul>
+      <li>Summarize engagement briefs and scope notes from approved materials to expedite kickoff.</li>
+      <li>Compile research syntheses from public sources with references for internal review.</li>
+      <li>Draft internal status updates and follow-ups based on meeting inputs and action items.</li>
+      <li>Standardize deliverable outlines to accelerate quality and consistency across teams.</li>
+    </ul>
+  </section>
+
+  <section id="data-privacy" class="section">
+    <h2>Data Protection and Privacy</h2>
+    <ul>
+      <li><strong>Least privilege:</strong> Access is scoped to the minimum necessary for the requested task.</li>
+      <li><strong>Configurable retention:</strong> Retention windows are configurable; customers can request data minimization and deletion policies.</li>
+      <li><strong>Encryption in transit and at rest:</strong> Data is protected during transmission and storage using industry-standard approaches.</li>
+      <li><strong>Role-based control:</strong> Access to features and information is governed by role and need-to-know principles.</li>
+      <li><strong>Transparency:</strong> Maria communicates limitations, cites sources where appropriate, and requests confirmation for sensitive actions.</li>
+      <li><strong>Human-in-the-loop:</strong> Drafts and recommendations are intended for human review and approval before completion.</li>
+      <li><strong>Auditability:</strong> Interactions and key decision points can be logged for compliance and oversight, subject to customer policy.</li>
+      <li><strong>Responsible use:</strong> Safety features help prevent inappropriate content and encourage respectful, compliant interactions.</li>
+    </ul>
+    <p class="small">Customers may define additional policies and data boundaries to align with organizational standards and regulatory expectations.</p>
+  </section>
+
+  <section id="getting-started" class="section">
+    <h2>Getting Started</h2>
+    <ul>
+      <li><strong>Discovery:</strong> Align on initial goals, scope, and success metrics; define data sources and channels.</li>
+      <li><strong>Configuration:</strong> Establish access, content boundaries, tone, and escalation preferences.</li>
+      <li><strong>Integration validation:</strong> Verify connections to collaboration tools and business systems using representative test cases.</li>
+      <li><strong>Pilot:</strong> Run a focused pilot with a small group; collect feedback and refine prompts, workflows, and guardrails.</li>
+      <li><strong>Rollout:</strong> Expand to additional teams with enablement materials, templates, and a feedback loop.</li>
+    </ul>
+  </section>
+
+  <section id="operations-support" class="section">
+    <h2>Operations and Support</h2>
+    <ul>
+      <li><strong>Reliability approach:</strong> Emphasis on resilience, graceful degradation, and clear fallbacks to human assistance.</li>
+      <li><strong>Monitoring:</strong> Track health signals and usage patterns to proactively address issues and improve performance.</li>
+      <li><strong>Issue handling:</strong> Clear pathways for reporting issues, with transparent status updates and root-cause focus.</li>
+      <li><strong>Change management:</strong> Structured updates and communication to minimize disruption to teams.</li>
+      <li><strong>Enablement:</strong> Admin and user guidance to adopt best practices and realize value quickly.</li>
+    </ul>
+  </section>
+
+  <section id="faqs" class="section">
+    <h2>FAQs</h2>
+    <ul>
+      <li><strong>What data does Maria store?</strong> Data handling follows a minimization approach with configurable retention and role-based access. Customers can request additional controls to align with policy.</li>
+      <li><strong>Does Maria learn from our data?</strong> Maria is designed to respect customer boundaries. Behavior can be configured so that content is not used beyond the agreed scope for serving your organization.</li>
+      <li><strong>How are sensitive requests handled?</strong> Sensitive or consequential actions can be gated behind confirmations, approvals, and auditable steps.</li>
+      <li><strong>What integrations are supported?</strong> Maria connects with widely used collaboration tools and major enterprise platforms. Specific connectors can be discussed during discovery.</li>
+      <li><strong>Can Maria operate in restricted environments?</strong> Options are available to support stricter data boundaries; feasibility is confirmed during discovery and integration validation.</li>
+      <li><strong>How is content quality ensured?</strong> Maria provides citations where appropriate, requests clarifications, and encourages human review for accuracy and fit.</li>
+      <li><strong>How customizable is Maria?</strong> Behavior, tone, policies, and workflows are configurable to align with organizational needs and compliance standards.</li>
+    </ul>
+  </section>
+
+  <footer class="section">
+    <h2>Next Steps</h2>
+    <p>To explore Maria for your organization, contact our team to schedule a discovery session or pilot. We will align on goals, outline an initial scope, and determine the best path to value based on your use cases and policies.</p>
+    <p class="small">This page is intended for external audiences and does not include source code, internal identifiers, or proprietary details.</p>
+  </footer>
+</main>
 </body>
 </html>

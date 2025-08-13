@@ -29,6 +29,8 @@ Maria is an AI executive assistant designed to facilitate communication and task
 - [Invocation Flow](invocation-flow.md)
 - [Configuration](configuration.md)
 
+- External Overview (single-page): [`maria-documentation.md`](maria-documentation.md)
+
 ## Overview
 
 Maria is a comprehensive AI assistant solution that integrates with various services to provide a wide range of functionalities. The modular design allows for easy maintenance and extension, while the robust conversation handling ensures natural interactions with users.
