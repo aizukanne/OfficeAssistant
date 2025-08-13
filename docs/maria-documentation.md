@@ -4,7 +4,7 @@ An external, self-contained overview of capabilities, value, security posture, a
 
 ## Executive Summary
 
-Maria is an enterprise AI assistant that helps teams communicate, find information, and orchestrate routine processes across business systems. Designed for secure and responsible use, Maria fits naturally within existing collaboration workflows and supports outcome‑driven assistance: faster responses, clearer decisions, and streamlined handoffs between people and systems. Organizations use Maria to reduce manual effort, improve service quality, and accelerate time to insight while maintaining control over data handling and privacy.
+Maria is an enterprise AI assistant that helps teams communicate, find information, and orchestrate routine processes across business systems. Designed for secure and responsible use, Maria fits naturally within existing collaboration workflows and supports outcome‑driven assistance: faster responses, clearer decisions, and streamlined handoffs between people and systems. Organizations use Maria to reduce manual effort, improve service quality, and accelerate time to insight while maintaining control over data handling and privacy. Maria also leverages contextual memory to recall relevant history, employs an iterative deep‑research approach to refine findings, and can take initiative on event‑driven tasks (for example, email triage → brief → notify) under policy and approvals.
 
 ## Key Capabilities
 
@@ -15,6 +15,9 @@ Maria is an enterprise AI assistant that helps teams communicate, find informati
 - Privacy‑first design: Built around least‑privilege access, configurable retention, and transparent handling of sensitive data.
 - Configurable policies: Tailor behavior to organizational rules, including content boundaries, language tone, and escalation paths.
 - Extensibility: Add new tasks, data sources, and workflows through modular configuration and well‑defined integration points.
+- Contextual memory for continuity: Retrieve relevant history and approved knowledge to reduce repetition and improve answer quality.
+- Deep research and discovery: Perform iterative, multi‑step research with recency preference and clear references.
+- Proactive, event‑driven automation: Take initiative on policy‑defined tasks (e.g., email triage → brief → notify) with approvals and auditability.
 
 Illustrative outcomes:
 - Response time: Reduce average time‑to‑answer for routine requests by consolidating search and summarization.
@@ -50,6 +53,27 @@ This section explains how Maria operates in everyday use. It focuses on what it 
 - Example interactions: “Give a two-paragraph overview of our travel policy for new hires.” • “Compare these two documents and list the key differences.”
 - Admin controls: Source allowlists/denylists, citation requirement, maximum depth/timeouts.
 - Considerations: Highlights uncertainty; invites verification for sensitive or high-impact decisions.
+
+### Long-term Context Memory
+- What it does: Maintains contextual memory that retrieves relevant prior interactions and approved knowledge to preserve continuity and reduce repetition.
+- Typical inputs: Current request plus available context from prior conversations or summaries.
+- Typical outputs: More precise, consistent responses that reference prior decisions and preferences.
+- Admin controls: Configurable retention windows, scope and opt-out policies, role-based access.
+- Considerations: Memory respects data boundaries and transparency expectations; users can request not to reuse specific content.
+
+### Deep Research Mode
+- What it does: Performs iterative, multi-step research with refined searches and source review to reach high-confidence answers.
+- Typical inputs: Research questions, links, hints, or ambiguous topics requiring discovery.
+- Typical outputs: Consolidated findings, comparisons, and succinct briefs with references where appropriate.
+- Admin controls: Source allowlists/denylists, maximum steps/timeouts, citation requirements.
+- Considerations: Prefers recent information and flags uncertainty or gaps requiring human judgment.
+
+### Proactive Automation and Autonomous Workflows
+- What it does: Takes initiative on event-driven tasks under policy—for example, triaging inbound emails, preparing a brief, and notifying the right channel.
+- Typical inputs: Events (e.g., new email), checklists, policy triggers, or scheduled cadences.
+- Typical outputs: Prioritized tasks, notifications, ready-to-send drafts, and next-step prompts.
+- Admin controls: Approval gates, escalation rules, audit logging, and safe defaults for sensitive actions.
+- Considerations: Human-in-the-loop by design; confirmations are required for consequential steps.
 
 ### Document Processing
 - What it does: Reads common document formats, extracts key points, and produces summaries or formatted outputs (such as ready-to-share documents) according to policy.
@@ -101,42 +125,49 @@ This section explains how Maria operates in everyday use. It focuses on what it 
 - Draft supplier communications for parts availability or order confirmations, ready for review and send.
 - Deliver quick‑reference guidance on safety policies and procedures to floor supervisors and leads.
 - Aggregate quality observations from approved sources and produce a daily snapshot for managers.
+- Long‑term context memory recalls recurring exceptions and prior resolutions; deep research surfaces best‑practice references for mitigation.
 
 ### Retail & eCommerce
 - Assist support teams with product information, warranty details, and clear answers sourced from approved content.
 - Generate inventory and order status summaries for store or fulfillment operations, emphasizing exceptions.
 - Draft campaign copy variations and category descriptions for merchandising teams to refine and approve.
 - Provide concise rollups of customer feedback themes to inform continuous improvements.
+- Semantic memory of recurring customer themes improves triage; deep research compiles market comparables to inform merchandising decisions.
 
 ### Financial Services
 - Offer policy and procedure Q&A for internal teams with citations to approved content sources.
 - Orchestrate checklist‑driven tasks for periodic reviews and reminders across teams.
 - Summarize market or regulatory updates from allowed public sources for internal briefings.
 - Create consistent, auditable responses to common internal queries with configurable guardrails.
+- Research mode tracks regulatory updates and compiles summaries; memory preserves prior Q&A context for consistent responses.
 
 ### Healthcare
 - Support non‑clinical operations such as scheduling coordination and intake communications.
 - Provide policy and compliance guidance lookup for staff, tailored to role‑based access.
 - Summarize supply and logistics status for administrators, highlighting bottlenecks and next steps.
 - Draft internal announcements and FAQs for change management and staff enablement.
+- Memory supports policy consistency across shifts; deep research gathers current public guidance for administrators.
 
 ### Logistics & Supply Chain
 - Produce shipment and delivery status rollups for daily standups across regions or lanes.
 - Assist triage of exceptions by gathering context and suggesting next‑best‑actions for human approval.
 - Generate KPI snapshots for fulfillment and on‑time performance with clear notes and owners.
 - Prepare partner‑ready updates consolidating data from approved internal sources.
+- Memory recognizes repeated bottlenecks and proposes known remedies; deep research refines root‑cause context for faster resolution.
 
 ### Public Sector
 - Draft program updates, internal FAQs, and staff briefings based on approved policies.
 - Enable knowledge lookup across public guidance and internal documents with clear citations.
 - Coordinate standard operating procedures by prompting for inputs and logging confirmations.
 - Create accessible summaries to support service delivery and community engagement.
+- Memory keeps program FAQs consistent across teams; deep research compiles up‑to‑date public directives to support decisions.
 
 ### Professional Services
 - Summarize engagement briefs and scope notes from approved materials to expedite kickoff.
 - Compile research syntheses from public sources with references for internal review.
 - Draft internal status updates and follow‑ups based on meeting inputs and action items.
 - Standardize deliverable outlines to accelerate quality and consistency across teams.
+- Engagement memory recalls prior decisions and deliverables; deep research assembles evidence packs rapidly for internal review.
 
 ## Data Protection and Privacy
 
@@ -144,6 +175,7 @@ This section explains how Maria operates in everyday use. It focuses on what it 
 - Configurable retention: Retention windows are configurable; customers can request data minimization and deletion policies.
 - Encryption in transit and at rest: Data is protected during transmission and storage using industry‑standard approaches.
 - Role‑based control: Access to features and information is governed by role and need‑to‑know principles.
+- Contextual memory: Configurable semantic memory stores support retention windows, opt‑out options, and role‑scoped access.
 - Transparency: Maria communicates limitations, cites sources where appropriate, and requests confirmation for sensitive actions.
 - Human‑in‑the‑loop: Drafts and recommendations are intended for human review and approval before completion.
 - Auditability: Interactions and key decision points can be logged for compliance and oversight, subject to customer policy.
@@ -175,6 +207,9 @@ Customers may define additional policies and data boundaries to align with organ
 - What integrations are supported? Maria connects with widely used collaboration tools and major enterprise platforms. Specific connectors can be discussed during discovery.
 - Can Maria operate in restricted environments? Options are available to support stricter data boundaries; feasibility is confirmed during discovery and integration validation.
 - How is content quality ensured? Maria provides citations where appropriate, requests clarifications, and encourages human review for accuracy and fit.
+- Does Maria remember past conversations? Within configured boundaries, Maria uses contextual memory to retrieve relevant prior interactions and approved knowledge, improving continuity and reducing repetition.
+- How does Maria perform research? Maria conducts iterative searches and source reviews with a preference for recent information and provides concise findings with references.
+- Will Maria act autonomously? Under defined policies and approvals, Maria can take initiative on event‑driven tasks (for example, email triage and notifications) with auditability and human‑in‑the‑loop controls.
 - How customizable is Maria? Behavior, tone, policies, and workflows are configurable to align with organizational needs and compliance standards.
 
 ## Next Steps

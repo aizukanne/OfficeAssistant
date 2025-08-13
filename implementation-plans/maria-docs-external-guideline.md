@@ -58,17 +58,27 @@ Information architecture (final external HTML and Markdown must follow)
 3) Solution overview (high-level)
 - Channels supported and extensibility approach in generic language.
 - Optional conceptual diagram (generic labels only).
+3a) Detailed functionality (required section)
+- Include the following subsections with external-safe language:
+  - Long-term Context Memory (contextual memory with configurable retention/scope; improves continuity; respects boundaries)
+  - Deep Research Mode (iterative multi-step research with recency preference and citations)
+  - Proactive Automation & Autonomous Workflows (event-driven initiative under approvals and auditability; e.g., email triage → brief → notify)
+  - Communication, Information Assistance, Document Processing, Message Management, User/Admin Controls, Integrations, Workflow Orchestration
+  - Capability matrix (inputs → outputs → example results)
 4) Industry use cases
 - Provide 3–4 examples per sector with outcomes (not features).
 - Sectors: Manufacturing; Retail & eCommerce; Financial Services; Healthcare; Logistics & Supply Chain; Public Sector; Professional Services.
+- For each sector, include one bullet highlighting the impact of memory and deep research on outcomes.
 5) Data protection and privacy
 - Data handling principles, retention choices, access control best practices, generic compliance alignments.
+- Add an explicit bullet for contextual memory stores (retention windows, opt-out, role-scoped access).
 6) Getting started (high-level)
 - Typical onboarding experience: discovery, configuration, integration validation, pilot, rollout.
 7) Operations and support
 - Reliability posture (plain language), support approach, and escalation paths (no internal SLO details).
 8) FAQs
 - Scope boundaries, customization, data boundaries, security, integration breadth, typical deployment patterns.
+- Add FAQs covering memory, research mode, and autonomous actions (policy/approval/audit).
 9) Next steps
 - Contact and POC/pilot guidance.
 
@@ -331,9 +341,11 @@ QA checklist (must pass before external release)
   - [x] Self-contained narrative with all required sections.
   - [x] Outcome-focused language; no implementation detail required for understanding value.
   - [x] Word count roughly 1200–1800 words; concise, scannable sections.
+  - [x] Detailed Functionality includes Long-term Context Memory, Deep Research Mode, and Proactive Automation & Autonomous Workflows.
 - Alignment and consistency
   - [x] Consistent with internal concepts without referencing internals.
   - [x] Sectors and use cases reflect approved list and examples.
+  - [x] Each sector includes a memory/research impact bullet.
 - Accessibility and presentation
   - [x] Semantic headings and sufficient contrast.
   - [x] Links are public-safe and work in print view.

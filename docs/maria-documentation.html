@@ -44,7 +44,7 @@
 
   <section id="executive-summary" class="section">
     <h2>Executive Summary</h2>
-    <p>Maria is an enterprise AI assistant that helps teams communicate, find information, and orchestrate routine processes across business systems. Designed for secure and responsible use, Maria fits naturally within existing collaboration workflows and supports outcome-driven assistance: faster responses, clearer decisions, and streamlined handoffs between people and systems. Organizations use Maria to reduce manual effort, improve service quality, and accelerate time to insight while maintaining control over data handling and privacy.</p>
+    <p>Maria is an enterprise AI assistant that helps teams communicate, find information, and orchestrate routine processes across business systems. Designed for secure and responsible use, Maria fits naturally within existing collaboration workflows and supports outcome-driven assistance: faster responses, clearer decisions, and streamlined handoffs between people and systems. Organizations use Maria to reduce manual effort, improve service quality, and accelerate time to insight while maintaining control over data handling and privacy. Maria also leverages contextual memory to recall relevant history and employs an iterative deep-research approach to refine findings. Under policy and approvals, Maria can take initiative on event-driven tasks (for example, email triage to brief to notification), going beyond Q&A to drive outcomes.</p>
   </section>
 
   <section id="key-capabilities" class="section">
@@ -57,6 +57,9 @@
       <li><strong>Privacy-first design:</strong> Built around least-privilege access, configurable retention, and transparent handling of sensitive data.</li>
       <li><strong>Configurable policies:</strong> Tailor behavior to organizational rules, including content boundaries, language tone, and escalation paths.</li>
       <li><strong>Extensibility:</strong> Add new tasks, data sources, and workflows through modular configuration and well-defined integration points.</li>
+      <li><strong>Contextual memory for continuity:</strong> Retrieve relevant history and approved knowledge to reduce repetition and improve answer quality.</li>
+      <li><strong>Deep research and discovery:</strong> Perform iterative, multi-step research with recency preference and clear references.</li>
+      <li><strong>Proactive, event-driven automation:</strong> Take initiative on policy-defined tasks (e.g., email triage → brief → notify) with approvals and auditability.</li>
     </ul>
 
     <div class="kpis" aria-label="Illustrative outcomes">
@@ -108,6 +111,33 @@
       <li><strong>Example interactions:</strong> “Give a two-paragraph overview of our travel policy for new hires.” • “Compare these two documents and list the key differences.”</li>
       <li><strong>Admin controls:</strong> Source allowlists/denylists, citation requirement, maximum depth/timeouts.</li>
       <li><strong>Considerations:</strong> Highlights uncertainty; invites verification for sensitive or high-impact decisions.</li>
+    </ul>
+    
+    <h3>Long-term Context Memory</h3>
+    <ul>
+      <li><strong>What it does:</strong> Maintains contextual memory that retrieves relevant prior interactions and approved knowledge to preserve continuity and reduce repetition.</li>
+      <li><strong>Typical inputs:</strong> Current request plus available context from prior conversations or summaries.</li>
+      <li><strong>Typical outputs:</strong> More precise, consistent responses that reference prior decisions and preferences.</li>
+      <li><strong>Admin controls:</strong> Configurable retention windows, scope and opt-out policies, role-based access.</li>
+      <li><strong>Considerations:</strong> Memory respects data boundaries and transparency expectations; users can request not to reuse specific content.</li>
+    </ul>
+
+    <h3>Deep Research Mode</h3>
+    <ul>
+      <li><strong>What it does:</strong> Performs iterative, multi-step research with refined searches and source review to reach high-confidence answers.</li>
+      <li><strong>Typical inputs:</strong> Research questions, links, hints, or ambiguous topics requiring discovery.</li>
+      <li><strong>Typical outputs:</strong> Consolidated findings, comparisons, and succinct briefs with references where appropriate.</li>
+      <li><strong>Admin controls:</strong> Source allowlists/denylists, maximum steps/timeouts, citation requirements.</li>
+      <li><strong>Considerations:</strong> Prefers recent information and flags uncertainty or gaps requiring human judgment.</li>
+    </ul>
+
+    <h3>Proactive Automation and Autonomous Workflows</h3>
+    <ul>
+      <li><strong>What it does:</strong> Takes initiative on event-driven tasks under policy—for example, triaging inbound emails, preparing a brief, and notifying the right channel.</li>
+      <li><strong>Typical inputs:</strong> Events (e.g., new email), checklists, policy triggers, or scheduled cadences.</li>
+      <li><strong>Typical outputs:</strong> Prioritized tasks, notifications, ready-to-send drafts, and next-step prompts.</li>
+      <li><strong>Admin controls:</strong> Approval gates, escalation rules, audit logging, and safe defaults for sensitive actions.</li>
+      <li><strong>Considerations:</strong> Human-in-the-loop by design; confirmations are required for consequential steps.</li>
     </ul>
 
     <h3>Document Processing</h3>
@@ -177,6 +207,7 @@
       <li>Draft supplier communications for parts availability or order confirmations, ready for review and send.</li>
       <li>Deliver quick-reference guidance on safety policies and procedures to floor supervisors and leads.</li>
       <li>Aggregate quality observations from approved sources and produce a daily snapshot for managers.</li>
+      <li>Long-term context memory recalls recurring exceptions and prior resolutions; deep research surfaces best-practice references for mitigation.</li>
     </ul>
 
     <h3>Retail & eCommerce</h3>
@@ -185,6 +216,7 @@
       <li>Generate inventory and order status summaries for store or fulfillment operations, emphasizing exceptions.</li>
       <li>Draft campaign copy variations and category descriptions for merchandising teams to refine and approve.</li>
       <li>Provide concise rollups of customer feedback themes to inform continuous improvements.</li>
+      <li>Semantic memory of recurring customer themes improves triage; deep research compiles market comparables to inform merchandising decisions.</li>
     </ul>
 
     <h3>Financial Services</h3>
@@ -193,6 +225,7 @@
       <li>Orchestrate checklist-driven tasks for periodic reviews and reminders across teams.</li>
       <li>Summarize market or regulatory updates from allowed public sources for internal briefings.</li>
       <li>Create consistent, auditable responses to common internal queries with configurable guardrails.</li>
+      <li>Research mode tracks regulatory updates and compiles summaries; memory preserves prior Q&A context for consistent responses.</li>
     </ul>
 
     <h3>Healthcare</h3>
@@ -201,6 +234,7 @@
       <li>Provide policy and compliance guidance lookup for staff, tailored to role-based access.</li>
       <li>Summarize supply and logistics status for administrators, highlighting bottlenecks and next steps.</li>
       <li>Draft internal announcements and FAQs for change management and staff enablement.</li>
+      <li>Memory supports policy consistency across shifts; deep research gathers current public guidance for administrators.</li>
     </ul>
 
     <h3>Logistics & Supply Chain</h3>
@@ -209,6 +243,7 @@
       <li>Assist triage of exceptions by gathering context and suggesting next-best-actions for human approval.</li>
       <li>Generate KPI snapshots for fulfillment and on-time performance with clear notes and owners.</li>
       <li>Prepare partner-ready updates consolidating data from approved internal sources.</li>
+      <li>Memory recognizes repeated bottlenecks and proposes known remedies; deep research refines root-cause context for faster resolution.</li>
     </ul>
 
     <h3>Public Sector</h3>
@@ -217,6 +252,7 @@
       <li>Enable knowledge lookup across public guidance and internal documents with clear citations.</li>
       <li>Coordinate standard operating procedures by prompting for inputs and logging confirmations.</li>
       <li>Create accessible summaries to support service delivery and community engagement.</li>
+      <li>Memory keeps program FAQs consistent across teams; deep research compiles up-to-date public directives to support decisions.</li>
     </ul>
 
     <h3>Professional Services</h3>
@@ -225,6 +261,7 @@
       <li>Compile research syntheses from public sources with references for internal review.</li>
       <li>Draft internal status updates and follow-ups based on meeting inputs and action items.</li>
       <li>Standardize deliverable outlines to accelerate quality and consistency across teams.</li>
+      <li>Engagement memory recalls prior decisions and deliverables; deep research assembles evidence packs rapidly for internal review.</li>
     </ul>
   </section>
 
@@ -235,6 +272,7 @@
       <li><strong>Configurable retention:</strong> Retention windows are configurable; customers can request data minimization and deletion policies.</li>
       <li><strong>Encryption in transit and at rest:</strong> Data is protected during transmission and storage using industry-standard approaches.</li>
       <li><strong>Role-based control:</strong> Access to features and information is governed by role and need-to-know principles.</li>
+      <li><strong>Contextual memory:</strong> Configurable semantic memory stores support retention windows, opt-out options, and role-scoped access.</li>
       <li><strong>Transparency:</strong> Maria communicates limitations, cites sources where appropriate, and requests confirmation for sensitive actions.</li>
       <li><strong>Human-in-the-loop:</strong> Drafts and recommendations are intended for human review and approval before completion.</li>
       <li><strong>Auditability:</strong> Interactions and key decision points can be logged for compliance and oversight, subject to customer policy.</li>
@@ -274,6 +312,9 @@
       <li><strong>What integrations are supported?</strong> Maria connects with widely used collaboration tools and major enterprise platforms. Specific connectors can be discussed during discovery.</li>
       <li><strong>Can Maria operate in restricted environments?</strong> Options are available to support stricter data boundaries; feasibility is confirmed during discovery and integration validation.</li>
       <li><strong>How is content quality ensured?</strong> Maria provides citations where appropriate, requests clarifications, and encourages human review for accuracy and fit.</li>
+      <li><strong>Does Maria remember past conversations?</strong> Within configured boundaries, Maria uses contextual memory to retrieve relevant prior interactions and approved knowledge, improving continuity and reducing repetition.</li>
+      <li><strong>How does Maria perform research?</strong> Maria conducts iterative searches and source reviews with a preference for recent information and provides concise findings with references.</li>
+      <li><strong>Will Maria act autonomously?</strong> Under defined policies and approvals, Maria can take initiative on event-driven tasks (for example, email triage and notifications) with auditability and human-in-the-loop controls.</li>
       <li><strong>How customizable is Maria?</strong> Behavior, tone, policies, and workflows are configurable to align with organizational needs and compliance standards.</li>
     </ul>
   </section>
