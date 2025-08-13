@@ -86,6 +86,88 @@
     <p class="small">Conceptually: users engage via collaboration interfaces; Maria orchestrates the request; knowledge and enterprise systems contribute information or actions; results are returned as clear, verifiable outputs for human decision-making.</p>
   </section>
 
+  <section id="detailed-functionality" class="section">
+    <h2>Detailed Functionality</h2>
+    <p>This section describes how Maria operates in day-to-day use, focusing on what it does, typical inputs and outputs, example interactions, admin controls, and important considerations. It avoids implementation or internal details.</p>
+
+    <h3>Communication</h3>
+    <ul>
+      <li><strong>What it does:</strong> Participates in conversations, replies in threads, and provides summaries or follow-ups across supported channels.</li>
+      <li><strong>Typical inputs:</strong> Direct messages, mentions, replies in threads, short form inputs, or voice notes (where enabled).</li>
+      <li><strong>Typical outputs:</strong> Contextual replies, threaded summaries, action lists, and follow-up drafts ready for human send.</li>
+      <li><strong>Example interactions:</strong> “Summarize this discussion and propose next steps.” • “Draft a polite reply confirming we received the request and will respond by tomorrow.”</li>
+      <li><strong>Admin controls:</strong> Channel scope, mention behavior, response length, escalation triggers, and opt-out rules.</li>
+      <li><strong>Considerations:</strong> Seeks clarification when needed; avoids committing to actions without explicit confirmation.</li>
+    </ul>
+
+    <h3>Information Assistance</h3>
+    <ul>
+      <li><strong>What it does:</strong> Retrieves information from approved sources and, if enabled, public web content to answer questions and provide concise synopses.</li>
+      <li><strong>Typical inputs:</strong> Questions with optional context or links; requests to compare policies, procedures, or reference materials.</li>
+      <li><strong>Typical outputs:</strong> Concise answers, bullet-point summaries, and source references (where available).</li>
+      <li><strong>Example interactions:</strong> “Give a two-paragraph overview of our travel policy for new hires.” • “Compare these two documents and list the key differences.”</li>
+      <li><strong>Admin controls:</strong> Source allowlists/denylists, citation requirement, maximum depth/timeouts.</li>
+      <li><strong>Considerations:</strong> Highlights uncertainty; invites verification for sensitive or high-impact decisions.</li>
+    </ul>
+
+    <h3>Document Processing</h3>
+    <ul>
+      <li><strong>What it does:</strong> Reads common document formats, extracts key points, and can produce summaries or formatted outputs (such as PDF deliverables) according to policy.</li>
+      <li><strong>Typical inputs:</strong> Uploaded files or accessible links (policies, briefings, notes, images).</li>
+      <li><strong>Typical outputs:</strong> Executive summaries, highlights and action items, or ready-to-share formatted documents.</li>
+      <li><strong>Example interactions:</strong> “Summarize these meeting notes with owners and deadlines.” • “Create a one-page brief from this policy.”</li>
+      <li><strong>Admin controls:</strong> Allowed file types and sizes, retention limits, export formats, and sharing rules.</li>
+      <li><strong>Considerations:</strong> Honors data boundaries; may request additional context if content is incomplete.</li>
+    </ul>
+
+    <h3>Message Management</h3>
+    <ul>
+      <li><strong>What it does:</strong> Helps organize conversations by summarizing long threads, highlighting decisions, and prompting for unresolved items.</li>
+      <li><strong>Typical inputs:</strong> Thread links or prompts to “recap” or “extract decisions.”</li>
+      <li><strong>Typical outputs:</strong> Thread recaps, decision logs, open items with suggested owners.</li>
+      <li><strong>Admin controls:</strong> Rules for mention frequency, recap cadence, and content boundaries.</li>
+      <li><strong>Considerations:</strong> Sensitive content can be omitted or generalized according to policy.</li>
+    </ul>
+
+    <h3>User and Admin Controls</h3>
+    <ul>
+      <li><strong>What it does:</strong> Supports role-based access and policy-driven behavior (tone, escalation, content boundaries).</li>
+      <li><strong>Typical inputs:</strong> Admin settings for roles, channels, retention, and safety rules.</li>
+      <li><strong>Typical outputs:</strong> Consistent responses aligned with organizational policies and audiences.</li>
+      <li><strong>Considerations:</strong> Changes to controls may require review to maintain consistency and compliance.</li>
+    </ul>
+
+    <h3>Integrations</h3>
+    <ul>
+      <li><strong>What it does:</strong> Connects to widely used collaboration and business platforms to fetch information or prepare drafts for routine actions.</li>
+      <li><strong>Typical inputs:</strong> Requests such as “show status,” “prepare a draft update,” or “summarize recent activity.”</li>
+      <li><strong>Typical outputs:</strong> Status summaries, prepared drafts for human send, or next-step checklists.</li>
+      <li><strong>Considerations:</strong> Specific connectors and permissions are confirmed during discovery; actions require explicit user confirmation.</li>
+    </ul>
+
+    <h3>Workflow Orchestration</h3>
+    <ul>
+      <li><strong>What it does:</strong> Guides multi-step processes using checklists, requests confirmations, and tracks progress for visibility.</li>
+      <li><strong>Typical inputs:</strong> Task lists, forms, or prompts like “help me complete the onboarding checklist.”</li>
+      <li><strong>Typical outputs:</strong> Structured steps, reminders, and handoff-ready drafts.</li>
+      <li><strong>Considerations:</strong> Designed for human-in-the-loop review; responsibilities and approvals remain with your team.</li>
+    </ul>
+
+    <h3>Capability at a Glance</h3>
+    <table aria-label="Capability at a Glance">
+      <thead>
+        <tr><th>Area</th><th>Typical Inputs</th><th>Typical Outputs</th><th>Example Result</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Communication</td><td>Messages, mentions, forms</td><td>Replies, summaries, drafts</td><td>“Draft a confirmation we received the request.”</td></tr>
+        <tr><td>Information Assistance</td><td>Questions, links, context</td><td>Answers with references</td><td>“Two-paragraph overview with citations.”</td></tr>
+        <tr><td>Document Processing</td><td>Files or links</td><td>Summaries, formatted outputs</td><td>“One-page brief with action items.”</td></tr>
+        <tr><td>Integrations</td><td>Status requests</td><td>Rollups, drafts</td><td>“Weekly status digest for the team.”</td></tr>
+        <tr><td>Workflows</td><td>Checklist prompts</td><td>Steps, reminders</td><td>“Onboarding steps with owners.”</td></tr>
+      </tbody>
+    </table>
+  </section>
+
   <section id="industry-use-cases" class="section">
     <h2>Industry Use Cases</h2>
 

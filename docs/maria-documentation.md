@@ -31,6 +31,69 @@ Maria brings together three core elements to deliver value:
 
 Conceptually, users engage via collaboration interfaces; Maria orchestrates the request; knowledge and enterprise systems contribute information or actions; results are returned as clear, verifiable outputs for human decision‑making.
 
+## Detailed Functionality
+
+This section explains how Maria operates in everyday use. It focuses on what it does, typical inputs and outputs, example interactions, and admin controls, without exposing internal implementation details.
+
+### Communication
+- What it does: Participates in conversations, replies in threads, and provides summaries or follow-ups across supported channels.
+- Typical inputs: Direct messages, mentions, thread replies, short form inputs, or voice notes (where enabled).
+- Typical outputs: Contextual replies, threaded summaries, action lists, and follow-up drafts ready for human send.
+- Example interactions: “Summarize this discussion and propose next steps.” • “Draft a confirmation that we received the request and will respond by tomorrow.”
+- Admin controls: Channel scope, mention behavior, response length, escalation triggers, and opt-out rules.
+- Considerations: Seeks clarification when needed; avoids committing to actions without explicit confirmation.
+
+### Information Assistance
+- What it does: Retrieves information from approved sources and, if enabled, public web content to answer questions and provide concise synopses.
+- Typical inputs: Questions with optional context or links; requests to compare policies, procedures, or reference materials.
+- Typical outputs: Concise answers, bullet-point summaries, and source references (where available).
+- Example interactions: “Give a two-paragraph overview of our travel policy for new hires.” • “Compare these two documents and list the key differences.”
+- Admin controls: Source allowlists/denylists, citation requirement, maximum depth/timeouts.
+- Considerations: Highlights uncertainty; invites verification for sensitive or high-impact decisions.
+
+### Document Processing
+- What it does: Reads common document formats, extracts key points, and produces summaries or formatted outputs (such as ready-to-share documents) according to policy.
+- Typical inputs: Uploaded files or accessible links (policies, briefings, notes, images).
+- Typical outputs: Executive summaries, highlights and action items, or formatted documents ready to distribute.
+- Example interactions: “Summarize these meeting notes with owners and deadlines.” • “Create a one-page brief from this policy.”
+- Admin controls: Allowed file types and sizes, retention limits, export formats, and sharing rules.
+- Considerations: Honors data boundaries; may request context if content is incomplete.
+
+### Message Management
+- What it does: Helps organize conversations by summarizing long threads, highlighting decisions, and prompting for unresolved items.
+- Typical inputs: Thread links or prompts to “recap” or “extract decisions.”
+- Typical outputs: Thread recaps, decision logs, open items with suggested owners.
+- Admin controls: Rules for mention frequency, recap cadence, and content boundaries.
+- Considerations: Sensitive content can be omitted or generalized according to policy.
+
+### User and Admin Controls
+- What it does: Supports role-based access and policy-driven behavior (tone, escalation, content boundaries).
+- Typical inputs: Admin settings for roles, channels, retention, and safety rules.
+- Typical outputs: Consistent responses aligned with organizational policies and audiences.
+- Considerations: Changes to controls may require review to maintain consistency and compliance.
+
+### Integrations
+- What it does: Connects to widely used collaboration and business platforms to fetch information or prepare drafts for routine actions.
+- Typical inputs: Requests such as “show status,” “prepare a draft update,” or “summarize recent activity.”
+- Typical outputs: Status summaries, prepared drafts for human send, or next-step checklists.
+- Considerations: Specific connectors and permissions are confirmed during discovery; actions require explicit user confirmation.
+
+### Workflow Orchestration
+- What it does: Guides multi-step processes using checklists, requests confirmations, and tracks progress for visibility.
+- Typical inputs: Task lists, forms, or prompts like “help me complete the onboarding checklist.”
+- Typical outputs: Structured steps, reminders, and handoff-ready drafts.
+- Considerations: Designed for human-in-the-loop review; responsibilities and approvals remain with your team.
+
+### Capability at a Glance
+
+| Area                   | Typical Inputs                    | Typical Outputs               | Example Result                                  |
+|------------------------|-----------------------------------|-------------------------------|-------------------------------------------------|
+| Communication          | Messages, mentions, forms         | Replies, summaries, drafts    | “Draft a confirmation we received the request.” |
+| Information Assistance | Questions, links, context         | Answers with references       | “Two-paragraph overview with citations.”        |
+| Document Processing    | Files or links                    | Summaries, formatted outputs  | “One-page brief with action items.”             |
+| Integrations           | Status requests                   | Rollups, drafts               | “Weekly status digest for the team.”            |
+| Workflows              | Checklist prompts                 | Steps, reminders              | “Onboarding steps with owners.”                 |
+
 ## Industry Use Cases
 
 ### Manufacturing
