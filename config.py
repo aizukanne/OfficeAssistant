@@ -104,4 +104,4 @@ def get_weaviate_client():
 weaviate_client = get_weaviate_client()
 
 # Default AI parameters
-ai_temperature = 0.9
+ai_temperature = 1

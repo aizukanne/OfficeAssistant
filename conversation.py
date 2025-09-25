@@ -71,7 +71,7 @@ def make_text_conversation(system_text, assistant_text, display_name, msg_histor
     return conversation 
 
 
-def make_vision_conversation(system_text, assistant_text, display_name, all_relevant_messages, msg_history_summary, all_messages, text, models, image_urls=None): 
+def make_vision_conversation(system_text, assistant_text, display_name, all_relevant_messages, msg_history_summary, all_messages, text, models=None, image_urls=None): 
     current_datetime = datetime.datetime.now(datetime.timezone.utc)
     datetime_msg = f"Today is {current_datetime.strftime('%A %d %B %Y')} and the time is {current_datetime.strftime('%I:%M %p')} GMT. Use this to accurately understand statements involving relative time, such as 'tomorrow', 'last week', last year or any other reference of time."
     
@@ -362,9 +362,9 @@ def make_openai_vision_call(client, conversations):
         # Prepare the API call   
         response = client.chat.completions.create(
             temperature=ai_temperature,
-            model="gpt-4.1-2025-04-14",
+            model="gpt-5-2025-08-07",
             messages=conversations,
-            max_tokens=5500,
+            max_completion_tokens=5500,
             tools=tools
         )
         print(response)
@@ -443,7 +443,7 @@ def ask_openai_o1(prompt):
         return None
 
 
-def make_cerebras_call(conversations, model="llama-4-scout-17b-16e-instruct", max_tokens=5500):
+def make_cerebras_call(conversations, model="gpt-oss-120b", max_tokens=5500):
     """
     Make a Cerebras API call similar to OpenAI format
     
@@ -476,6 +476,7 @@ def make_cerebras_call(conversations, model="llama-4-scout-17b-16e-instruct", ma
         }
         
         # Make the API call
+        """
         response = requests.post(url, headers=headers, json=payload, timeout=30)
         
         # Check for success
@@ -483,13 +484,51 @@ def make_cerebras_call(conversations, model="llama-4-scout-17b-16e-instruct", ma
             result = response.json()
             print(result)  # Print full response like OpenAI version
             return result["choices"][0]["message"]
+        elif response.status_code == 429:
+            
         else:
             print(f"API call failed with status {response.status_code}: {response.text}")
             return None
-            
+        """
+
+        # Make the API call with a single retry on 429 token quota errors
+        for attempt in range(3):  # 1st try + 1 retry
+            response = requests.post(url, headers=headers, json=payload, timeout=30)
+
+            if response.status_code == 200:
+                result = response.json()
+                print(result)  # Print full response like OpenAI version
+                return result["choices"][0]["message"]
+
+            # Handle "Tokens per minute" quota error and retry once after 60 seconds
+            if response.status_code == 429:
+                try:
+                    err = response.json()
+                except ValueError:
+                    err = {}
+
+                err_code = (err.get("code") or err.get("type") or "")
+                err_msg = err.get("message", "")
+
+                is_token_quota = (
+                    "token_quota_exceeded" in err_code
+                    or "too_many_tokens_error" in err_code
+                    or "Tokens per minute limit exceeded" in err_msg
+                )
+
+                if is_token_quota and attempt == 0:
+                    print("Hit tokens-per-minute limit (429). Waiting 60s, then retrying once...")
+                    time.sleep(60)
+                    continue  # retry after sleep
+
+            # Any other failure (or second 429) stops here
+            print(f"API call failed with status {response.status_code}: {response.text}")
+            return None
+
     except Exception as e:
         print(f"An error occurred during the Cerebras API call: {e}")
         return None
+
 
 def ensure_object_properties(tools):
     for tool in tools:
@@ -505,6 +544,7 @@ def ensure_object_properties(tools):
                 #print(f"Fixed {prop_name}: added empty properties")
     
     return tools
+
 
 def select_cerebras_tools(all_tools):
     """
@@ -527,7 +567,10 @@ def select_cerebras_tools(all_tools):
         "get_users",
         "get_channels",
         "manage_mute_status",
-        "search_and_format_products"
+        "search_and_format_products",
+        "set_slack_channel_description",
+        "create_slack_channel",
+        "invite_users_to_slack_channel"
     }
     if isinstance(tool_names, list):
         tool_names = set(tool_names)
@@ -689,7 +732,7 @@ def _send_slack_fallback(event_type, thread_ts, chat_id, audio_text, assistant_r
 
 def handle_tool_calls(response_message, available_functions, chat_id, conversations, thread_ts):
     from storage import save_message_weaviate
-    
+
     # Try object format first, fall back to dict format
     try:
         tool_calls = response_message.tool_calls
@@ -700,9 +743,15 @@ def handle_tool_calls(response_message, available_functions, chat_id, conversati
         else:
             tool_calls = response_message['choices'][0]['message']['tool_calls']
 
+    # NEW: normalize tool_calls to a list and handle None
+    if tool_calls is None:
+        return conversations
+    if isinstance(tool_calls, dict):
+        tool_calls = [tool_calls]
+
     response_message_dict = serialize_chat_completion_message(response_message)
     conversations.append(response_message_dict)
-    
+
     def process_tool_call(tool_call):
         try:
             # Handle both object and dict formats
@@ -716,35 +765,59 @@ def handle_tool_calls(response_message, available_functions, chat_id, conversati
                 function_name = tool_call['function']['name']
                 tool_call_id = tool_call['id']
                 function_arguments = tool_call['function']['arguments']
-            
+
+            # Look up the function
             function_to_call = available_functions.get(function_name)
 
-            if function_to_call:
-                function_args = json.loads(function_arguments)
-                function_response = function_to_call(**function_args)
-                print(f"Raw Function Response: {function_response}")
+            # NEW: if function does not exist, print notice and return a synthetic message
+            if not function_to_call:
+                notice = f"[tools] Requested tool '{function_name}' does not exist. " \
+                         f"Available: {', '.join(sorted(available_functions.keys()))}"
+                print(notice)
 
-                if not isinstance(function_response, str):
-                    function_response = json.dumps(function_response, default=decimal_default)
-                    print(f"Function Response: {function_response}")
-                    if function_name != "google_search" and "odoo" not in function_name:
-                        save_message_weaviate('AssistantMessages', chat_id, function_response, thread_ts)
-                    
+                function_response = {
+                    "error": "requested tool does not exist",
+                    "requested_tool": function_name,
+                    "available_tools": sorted(available_functions.keys()),
+                }
                 return {
                     "tool_call_id": tool_call_id,
                     "role": "tool",
                     "name": function_name,
-                    "content": function_response,
+                    "content": json.dumps(function_response),
                 }
+
+            # Parse arguments safely
+            try:
+                function_args = json.loads(function_arguments) if isinstance(function_arguments, str) else function_arguments
+            except Exception:
+                function_args = {}  # fall back if args are malformed
+
+            # Call the function
+            function_response = function_to_call(**(function_args or {}))
+
+            if not isinstance(function_response, str):
+                function_response = json.dumps(function_response, default=decimal_default)
+                print(f"Function Response: {function_response}")
+                if function_name != "google_search" and "odoo" not in function_name:
+                    save_message_weaviate('AssistantMessages', chat_id, function_response, thread_ts)
+
+            return {
+                "tool_call_id": tool_call_id,
+                "role": "tool",
+                "name": function_name,
+                "content": function_response,
+            }
+
         except Exception as e:
             # Handle error logging for both formats
             try:
                 tool_call_id = tool_call.id
                 function_name = tool_call.function.name
             except AttributeError:
-                tool_call_id = tool_call['id']
-                function_name = tool_call['function']['name']
-                
+                tool_call_id = tool_call.get('id', 'unknown')
+                function_name = tool_call.get('function', {}).get('name', 'unknown')
+
             logging.error(f"Error processing tool call {tool_call_id}: {str(e)}")
             return {
                 "tool_call_id": tool_call_id,
@@ -752,12 +825,10 @@ def handle_tool_calls(response_message, available_functions, chat_id, conversati
                 "name": function_name,
                 "content": json.dumps({"error": str(e)}),
             }
-        return None
 
     # Use ThreadPoolExecutor to process tool calls in parallel
     with ThreadPoolExecutor() as executor:
         future_to_tool_call = {executor.submit(process_tool_call, tool_call): tool_call for tool_call in tool_calls}
-        
         for future in as_completed(future_to_tool_call):
             tool_call_result = future.result()
             if tool_call_result:

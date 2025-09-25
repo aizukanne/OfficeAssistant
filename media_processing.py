@@ -35,7 +35,7 @@ from nlp_utils import (
 try:
     from nlp_utils import rank_sentences, load_stopwords
 except ImportError:
-    def rank_sentences(text, stopwords, max_sentences=50):
+    def rank_sentences(text, stopwords, max_sentences=25):
         return text[:1000]  # Fallback
     def load_stopwords(language):
         return []
@@ -570,7 +570,7 @@ class EnhancedWebScraper:
 
                     if full_text:
                         if self.enhanced_has_proper_sentences(cleaned_text):
-                            summary_or_full_text = rank_sentences(cleaned_text, stopwords, max_sentences=50)  
+                            summary_or_full_text = rank_sentences(cleaned_text, stopwords, max_sentences=20)  
                         else:
                             # Provide truncated content if no proper sentences
                             summary_or_full_text = cleaned_text[:1000] + "..." if len(cleaned_text) > 1000 else cleaned_text

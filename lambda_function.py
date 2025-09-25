@@ -270,7 +270,7 @@ def lambda_handler(event, context):
 
         # Retrieve the last N messages from the user and assistant     
         if route_name == 'chitchat':
-            summary_len = 0
+            summary_len = 10
             full_text_len = 2
             relevant = 2
             system_text = prompts['instruct_basic']
@@ -374,7 +374,7 @@ def lambda_handler(event, context):
                                                 all_messages, text, models, image_urls)
             response_message = make_openai_vision_call(client, conversation)
         else:
-            if route_name in ['chitchat', 'research']:
+            if route_name in ['chitchat', 'writing']:
                 # Regular vision conversation for text-only
                 conversation = make_cerebras_conversation(system_text, assistant_text, display_name, all_relevant_messages, msg_history_summary, all_messages, text, models)
                 #response_message = make_openrouter_call(openrouter_client, conversation)
@@ -407,7 +407,7 @@ def lambda_handler(event, context):
         if has_tool_calls:
             # REFRESH TYPING for tool processing
             if source == 'slack' and chat_id:
-                send_typing_indicator(chat_id, duration=10)
+                send_typing_indicator(chat_id, duration=10, method="simulation", emoji='research')
 
             conversation_with_tool_responses = handle_tool_calls(
                 response_message, available_functions, chat_id, conversation, thread_ts
@@ -420,7 +420,7 @@ def lambda_handler(event, context):
                 # Use vision for image-based conversations
                 response_message = make_openai_vision_call(client, conversation_with_tool_responses)
             else:
-                if route_name in ['chitchat', 'research']:
+                if route_name in ['chitchat', 'writing']:
                     #response_message = make_openrouter_call(openrouter_client, conversation_with_tool_responses)
                     response_message = make_cerebras_call(conversation_with_tool_responses)
                 else:
@@ -454,7 +454,7 @@ def get_embedding(text, model="text-embedding-ada-002"):
     text_cleaned = text.replace("\n", " ")
     embedding = client.embeddings.create(input=[text_cleaned], model=model).data[0].embedding
     return {"text": text_cleaned, "embedding": embedding}
-    
+
 
 def send_to_sqs(data, queue_url):
     sqs = boto3.client('sqs')
@@ -589,7 +589,7 @@ def google_search(search_term, before=None, after=None, intext=None, allintext=N
     search_url = f"https://www.googleapis.com/customsearch/v1?q={url_encoded_search_term}&cx={custom_search_id}&key={custom_search_api_key}"
     response = requests.get(search_url)
     results = response.json().get('items', [])
-    print(json.dumps(results, default=decimal_default))
+    #print(json.dumps(results, default=decimal_default))
 
     web_links = []
     for result in results:

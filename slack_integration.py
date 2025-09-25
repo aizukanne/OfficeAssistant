@@ -756,21 +756,31 @@ class TypingIndicatorAlternative:
             print(f"Error with WebSocket typing: {e}")
             return False
     
-    def send_typing_simulation(self, channel_id: str, duration: int = 3):
+    def send_typing_simulation(self, channel_id: str, duration: int = 3, emoji: str = 'thinking'):
         """
         Method 3: Simulate typing by sending a temporary message
         This is a workaround but provides visible feedback to users
         """
         try:
-            # Send a temporary "thinking" message
-            temp_response = slack_client.chat_postMessage(
-                channel=channel_id,
-                text="🤔 Thinking...",
-                metadata={
-                    "event_type": "typing_indicator",
-                    "event_payload": {"temporary": True}
-                }
-            )
+            # Send a temporary "thinking / researching" message
+            if emoji == 'research':
+                temp_response = slack_client.chat_postMessage(
+                    channel=channel_id,
+                    text="🕵️‍♀️ Researching...",
+                    metadata={
+                        "event_type": "typing_indicator",
+                        "event_payload": {"temporary": True}
+                    }
+                )
+            else:
+                temp_response = slack_client.chat_postMessage(
+                    channel=channel_id,
+                    text="🤔 Thinking...",
+                    metadata={
+                        "event_type": "typing_indicator",
+                        "event_payload": {"temporary": True}
+                    }
+                )
             
             if temp_response.get("ok"):
                 temp_ts = temp_response.get("ts")
@@ -798,7 +808,7 @@ class TypingIndicatorAlternative:
         except Exception as e:
             print(f"Error with typing simulation: {e}")
             return False
-    
+
     def send_typing_with_reactions(self, channel_id: str, user_message_ts: str):
         """
         Method 4: Use emoji reactions to indicate processing
@@ -841,20 +851,20 @@ class TypingIndicatorAlternative:
 typing_alternative = TypingIndicatorAlternative()
 
 # Easy-to-use functions
-def send_typing_indicator(channel_id: str, duration: int = 30, method: str = "simulation"):
+def send_typing_indicator(channel_id: str, duration: int = 30, method: str = "simulation", emoji: str = 'thinking'):
     """
     Send typing indicator using specified method
     
     Args:
         channel_id (str): Slack channel or DM ID
         duration (int): How long to show typing
-        method (str): "simulation", "rtm", "websocket", or "reaction"
+        method (str): "simulation", "research", "rtm", "websocket", or "reaction"
     
     Returns:
         bool: Success status
     """
     if method == "simulation":
-        return typing_alternative.send_typing_simulation(channel_id, min(duration, 5))
+        return typing_alternative.send_typing_simulation(channel_id, min(duration, 5), emoji)
     elif method == "rtm":
         return typing_alternative.send_typing_rtm(channel_id)
     elif method == "websocket":

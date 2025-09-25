@@ -35,7 +35,9 @@ def rank_sentences(text, stopwords, max_sentences=10):
                 sentence_scores[sent] = sentence_scores.get(sent, 0) + word_frequencies[word]
 
     sorted_sentences = sorted(sentence_scores, key=sentence_scores.get, reverse=True)
+    #print(f'Sentences:{sorted_sentences}')
     summary_sentences = sorted_sentences[:max_sentences]
+    #print(f'Summary Sentences:{summary_sentences}')
     
     # Add a full stop at the end of each sentence if it doesn't already end with one 
     summary = ' '.join([s if s.endswith('.') else f'{s}.' for s in summary_sentences])
