@@ -559,7 +559,7 @@ def select_cerebras_tools(all_tools):
     """
     tool_names = {
         "browse_internet",
-        "google_search", 
+        "google_search",
         "get_coordinates",
         "get_weather_data",
         "get_message_by_sort_id",
@@ -570,7 +570,8 @@ def select_cerebras_tools(all_tools):
         "search_and_format_products",
         "set_slack_channel_description",
         "create_slack_channel",
-        "invite_users_to_slack_channel"
+        "invite_users_to_slack_channel",
+        "gemini_generate_content"
     }
     if isinstance(tool_names, list):
         tool_names = set(tool_names)

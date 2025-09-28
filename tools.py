@@ -659,5 +659,22 @@ tools = [
                 "required": ["channel_id", "user_ids"]
             }
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "gemini_generate_content",
+            "description": "Generate images using Google's Gemini Nano Banana. Creates beautiful images based on a provided description. Perfect for creating visual content, illustrations, diagrams, and creative writing with accompanying images.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "prompt": {
+                        "type": "string",
+                        "description": " A description of the image you want generated. Examples: 'Generate an image of a banana wearing a costume.', 'Generate a diagram showing how solar panels work', 'Generate an image for a blog post about cooking african dishes'"
+                    },
+                },
+                "required": ["prompt"]
+            }
+        }
     }
 ]

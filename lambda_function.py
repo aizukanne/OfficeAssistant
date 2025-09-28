@@ -88,7 +88,8 @@ from conversation import (
 from media_processing import (
     text_to_speech, upload_image_to_s3, transcribe_speech_from_memory,
     download_audio_to_memory, process_url, transcribe_multiple_urls,
-    convert_to_wav_in_memory, has_proper_sentences, EnhancedWebScraper
+    convert_to_wav_in_memory, has_proper_sentences, EnhancedWebScraper,
+    gemini_generate_content
 )
 
 from nlp_utils import (
@@ -517,7 +518,8 @@ def get_available_functions(source):
         "ask_openai_o1": ask_openai_o1,
         "get_embedding": get_embedding,
         "manage_mute_status": manage_mute_status,
-        "search_and_format_products": search_and_format_products
+        "search_and_format_products": search_and_format_products,
+        "gemini_generate_content": gemini_generate_content
     }
     
     # Platform-specific functions

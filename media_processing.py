@@ -16,10 +16,11 @@ import requests
 import tempfile
 import warnings
 import wave
+from typing import Dict, Any
 
 from aiohttp import ClientError, ClientConnectorSSLError
 from bs4 import BeautifulSoup
-from config import client, slack_bot_token, image_bucket_name, docs_bucket_name, USER_AGENTS
+from config import client, slack_bot_token, image_bucket_name, docs_bucket_name, USER_AGENTS, gemini_api_key
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from docx import Document
 from io import BytesIO, StringIO
@@ -730,3 +731,159 @@ class EnhancedWebScraper:
                     'urls': urls
                 }
             }]
+
+
+def upload_image_content_to_s3(image_content: bytes, mime_type: str) -> str:
+    """
+    Upload image content directly to S3 and return the S3 URL.
+    Following the same pattern as upload_document_to_s3.
+    
+    Args:
+        image_content (bytes): Binary image data
+        mime_type (str): MIME type of the image (e.g., 'image/png')
+    
+    Returns:
+        str: S3 URL of uploaded image
+    """
+    image_extension = mimetypes.guess_extension(mime_type) or '.bin'
+    s3_object_name = f"Generated_Image_{datetime.datetime.now(datetime.UTC).strftime('%Y%m%d%H%M%S')}{image_extension}"
+    
+    # Upload to S3
+    s3_client = boto3.client('s3')
+    s3_client.put_object(Body=image_content, Bucket=image_bucket_name, Key=s3_object_name)
+    
+    # Construct the S3 URL
+    s3_url = f"https://{image_bucket_name}.s3.amazonaws.com/{s3_object_name}"
+    return s3_url
+
+
+def gemini_generate_content(
+    prompt: str,
+    file_name_prefix: str = "generated_content",
+    model: str = "gemini-2.5-flash-image-preview"
+) -> Dict[str, Any]:
+    """
+    Generate content using Google's Gemini API with support for both text and image outputs.
+    
+    This function integrates with the existing system's Gemini API configuration and
+    AWS S3 infrastructure for image storage.
+    
+    Args:
+        prompt (str): The text prompt to send to Gemini
+        file_name_prefix (str): Prefix for generated file names (default: "generated_content")
+        model (str): Gemini model to use (default: "gemini-2.5-flash-image-preview")
+    
+    Returns:
+        Dict[str, Any]: Dictionary containing:
+            - "success": bool indicating if the operation was successful
+            - "text_content": str containing all text responses
+            - "generated_files": list of S3 URLs for saved images
+            - "error": str containing error message if success is False
+    """
+    
+    result = {
+        "success": False,
+        "text_content": "",
+        "generated_files": [],
+        "error": ""
+    }
+    
+    try:
+        # Use API key from config (already available in system)
+        if not gemini_api_key:
+            result["error"] = "Gemini API key not found in system configuration"
+            return result
+        
+        # Prepare the API request (non-streaming version)
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+        
+        headers = {
+            "Content-Type": "application/json",
+            "x-goog-api-key": gemini_api_key
+        }
+        
+        # Prepare the request payload
+        payload = {
+            "contents": [
+                {
+                    "role": "user",
+                    "parts": [
+                        {
+                            "text": prompt
+                        }
+                    ]
+                }
+            ],
+            "generationConfig": {
+                "response_modalities": ["IMAGE", "TEXT"],
+                "temperature": 0.7,
+                "topK": 40,
+                "topP": 0.95,
+                "maxOutputTokens": 8192
+            }
+        }
+        
+        # Make the request
+        response = requests.post(
+            url,
+            headers=headers,
+            json=payload,
+            timeout=300  # 5 minute timeout
+        )
+        
+        if response.status_code != 200:
+            result["error"] = f"API request failed with status {response.status_code}: {response.text}"
+            return result
+        
+        response_data = response.json()
+        
+        # Process the response
+        file_index = 0
+        text_parts = []
+        
+        if 'candidates' in response_data and response_data['candidates']:
+            candidate = response_data['candidates'][0]
+            
+            if 'content' in candidate and 'parts' in candidate['content']:
+                parts = candidate['content']['parts']
+                
+                for part in parts:
+                    # Handle inline data (images)
+                    if 'inlineData' in part:
+                        inline_data = part['inlineData']
+                        if 'data' in inline_data:
+                            # Decode base64 data
+                            try:
+                                data_buffer = base64.b64decode(inline_data['data'])
+                                mime_type = inline_data.get('mimeType', 'image/png')
+                                
+                                # Upload to S3 using our helper function
+                                s3_url = upload_image_content_to_s3(data_buffer, mime_type)
+                                result["generated_files"].append(s3_url)
+                                file_index += 1
+                                
+                            except Exception as e:
+                                print(f"Error processing image data: {str(e)}")
+                    
+                    # Handle text data
+                    elif 'text' in part:
+                        text_content = part['text']
+                        text_parts.append(text_content)
+        
+        # Combine all text content
+        result["text_content"] = "".join(text_parts)
+        result["success"] = True
+        
+        print(f"Generation completed successfully!")
+        print(f"Text content length: {len(result['text_content'])} characters")
+        print(f"Files generated: {len(result['generated_files'])}")
+        
+    except requests.exceptions.Timeout:
+        result["error"] = "Request timed out. The generation may have taken too long."
+    except requests.exceptions.RequestException as e:
+        result["error"] = f"Request error: {str(e)}"
+    except Exception as e:
+        result["error"] = f"Error during content generation: {str(e)}"
+        print(f"Error: {result['error']}")
+    
+    return result
