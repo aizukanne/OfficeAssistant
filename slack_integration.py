@@ -35,6 +35,8 @@ def convert_markdown_to_slack(content):
     return content
 
 def convert_to_slack_blocks(markdown_text):
+    import re
+    
     lines = markdown_text.split('\n')
     blocks = []
     current_section = []
@@ -96,6 +98,33 @@ def convert_to_slack_blocks(markdown_text):
                 current_section = []
             in_code_block = True
             current_section.append(line)  # Include the starting backticks
+            continue
+        
+        # Handle markdown images
+        image_pattern = r'!\[([^\]]*)\]\(([^)]+)\)'
+        if re.match(image_pattern, line.strip()):
+            # Flush current section
+            if current_section:
+                blocks.append({
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "\n".join(current_section)
+                    }
+                })
+                current_section = []
+            
+            # Extract alt text and URL
+            match = re.match(image_pattern, line.strip())
+            alt_text = match.group(1) or "Image"
+            image_url = match.group(2)
+            
+            # Add image block
+            blocks.append({
+                "type": "image",
+                "image_url": image_url,
+                "alt_text": alt_text
+            })
             continue
         
         # Replace Markdown bold with Slack's bold syntax outside code blocks
@@ -191,19 +220,30 @@ def convert_to_slack_blocks(markdown_text):
     return json.dumps(blocks)
 
 def send_slack_message(message, channel, ts=None):
+    import re
+    
     # Slack Bot URL
     url = "https://slack.com/api/chat.postMessage"
 
     text_message = BeautifulSoup(markdown2.markdown(message), 'html.parser').get_text()
     slack_blocks = convert_to_slack_blocks(message)
     
+    # Check if message contains inline images
+    image_pattern = r'!\[([^\]]*)\]\(([^)]+)\)'
+    has_inline_images = bool(re.search(image_pattern, message))
+    
     # Message data
     data = {
         'channel': channel,
-        'text': message,
+        'text': text_message,
         'thread_ts': ts,
         'blocks': slack_blocks
     }
+    
+    # Only disable unfurling if there are inline images
+    if has_inline_images:
+        data['unfurl_links'] = False
+        data['unfurl_media'] = False
     
     # HTTP headers
     headers = {
