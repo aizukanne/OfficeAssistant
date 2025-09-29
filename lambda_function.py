@@ -519,7 +519,8 @@ def get_available_functions(source):
         "get_embedding": get_embedding,
         "manage_mute_status": manage_mute_status,
         "search_and_format_products": search_and_format_products,
-        "gemini_generate_content": gemini_generate_content
+        "gemini_generate_content": gemini_generate_content,
+        "search_conversation_history": search_conversation_history
     }
     
     # Platform-specific functions
@@ -620,6 +621,47 @@ async def process_page(session, url, semaphore, full_text=False):
 async def fetch_page(session, url, timeout=60):
     """Drop-in replacement for your existing fetch_page function."""
     return await _scraper_instance.fetch_page(session, url, timeout)
+
+def search_conversation_history(chat_id, query_text, num_results=5):
+    """
+    Wrapper function to search both user and assistant message tables.
+    Returns results from both tables in a structured dictionary.
+    
+    Args:
+        chat_id (str): The unique chat identifier to search within
+        query_text (str): The search query text for semantic matching
+        num_results (int): Maximum number of results from each table (default: 5)
+        
+    Returns:
+        dict: Dictionary containing user_messages, assistant_messages, total_results, query, and chat_id
+    """
+    from config import user_table, assistant_table
+    from storage_pooled import get_relevant_messages_pooled
+    
+    try:
+        # Search user messages
+        user_results = get_relevant_messages_pooled(user_table, chat_id, query_text, num_results)
+        
+        # Search assistant messages  
+        assistant_results = get_relevant_messages_pooled(assistant_table, chat_id, query_text, num_results)
+        
+        return {
+            "user_messages": user_results,
+            "assistant_messages": assistant_results,
+            "total_results": len(user_results) + len(assistant_results),
+            "query": query_text,
+            "chat_id": chat_id
+        }
+        
+    except Exception as e:
+        return {
+            "error": f"Failed to search conversation history: {str(e)}",
+            "user_messages": [],
+            "assistant_messages": [],
+            "total_results": 0,
+            "query": query_text,
+            "chat_id": chat_id
+        }
 
 
 def upload_document_to_s3(document_content, content_type, document_url):

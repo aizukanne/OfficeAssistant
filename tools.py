@@ -676,5 +676,31 @@ tools = [
                 "required": ["prompt"]
             }
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "search_conversation_history",
+            "description": "Searches the conversation history for relevant messages using semantic similarity. Returns messages from both user and assistant that match the query text, helping to find past discussions, topics, or information that was previously mentioned in the conversation.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "chat_id": {
+                        "type": "string",
+                        "description": "The unique chat identifier to search within. This scopes the search to a specific conversation thread."
+                    },
+                    "query_text": {
+                        "type": "string",
+                        "description": "The search query text. This will be matched semantically against past conversation messages to find relevant content."
+                    },
+                    "num_results": {
+                        "type": "integer",
+                        "description": "Maximum number of results to return from each table (user and assistant). Defaults to 5 if not specified.",
+                        "default": 5
+                    }
+                },
+                "required": ["chat_id", "query_text"]
+            }
+        }
     }
 ]
