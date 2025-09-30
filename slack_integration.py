@@ -127,8 +127,61 @@ def convert_to_slack_blocks(markdown_text):
             })
             continue
         
+        # Handle standalone image URLs
+        standalone_url_pattern = r'^https?://[^\s]+\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?[^\s]*)?$'
+        if re.match(standalone_url_pattern, line.strip(), re.IGNORECASE):
+            # Flush current section
+            if current_section:
+                blocks.append({
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "\n".join(current_section)
+                    }
+                })
+                current_section = []
+            
+            # Use previous line as alt text if it looks like a description
+            alt_text = "Image"
+            if current_section and current_section[-1] and not current_section[-1].startswith('http'):
+                # Use the last line as alt text and remove it from current_section
+                potential_alt = current_section[-1].strip()
+                if len(potential_alt) < 100:  # Reasonable alt text length
+                    alt_text = potential_alt
+                    current_section = current_section[:-1]
+                    # Re-flush the remaining section if needed
+                    if current_section:
+                        blocks.append({
+                            "type": "section",
+                            "text": {
+                                "type": "mrkdwn",
+                                "text": "\n".join(current_section)
+                            }
+                        })
+                        current_section = []
+            
+            # Add image block
+            blocks.append({
+                "type": "image",
+                "image_url": line.strip(),
+                "alt_text": alt_text
+            })
+            continue
+        
+        # Clean up problematic characters and formatting
+        # Replace Unicode hyphens with regular hyphens
+        line = line.replace('\u2011', '-').replace('\u2013', '-').replace('\u2014', '-')
+        
         # Replace Markdown bold with Slack's bold syntax outside code blocks
         line = line.replace('**', '*')
+        
+        # Escape problematic LaTeX characters for Slack
+        # Convert LaTeX delimiters to code formatting
+        if '\\[' in line or '\\]' in line:
+            line = line.replace('\\[', '`').replace('\\]', '`')
+        
+        # Escape backslashes that might interfere with Slack markdown
+        line = line.replace('\\\\', '\\')
 
         # Handle blockquotes
         if line.startswith('>'):
@@ -228,9 +281,13 @@ def send_slack_message(message, channel, ts=None):
     text_message = BeautifulSoup(markdown2.markdown(message), 'html.parser').get_text()
     slack_blocks = convert_to_slack_blocks(message)
     
-    # Check if message contains inline images
-    image_pattern = r'!\[([^\]]*)\]\(([^)]+)\)'
-    has_inline_images = bool(re.search(image_pattern, message))
+    # Check if message contains inline images (markdown or standalone URLs)
+    markdown_image_pattern = r'!\[([^\]]*)\]\(([^)]+)\)'
+    standalone_url_pattern = r'^https?://[^\s]+\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?[^\s]*)?$'
+    
+    has_inline_images = bool(re.search(markdown_image_pattern, message)) or \
+                       any(re.match(standalone_url_pattern, line.strip(), re.IGNORECASE)
+                           for line in message.split('\n'))
     
     # Message data
     data = {
@@ -251,9 +308,112 @@ def send_slack_message(message, channel, ts=None):
         'Authorization': 'Bearer ' + slack_bot_token
     }
 
-    response = requests.post(url, headers=headers, json=data)
+    def validate_slack_blocks(blocks):
+        """Validate Slack blocks for common issues"""
+        if not blocks:
+            return True, "No blocks to validate"
+        
+        issues = []
+        
+        # Check total number of blocks (Slack limit: 50)
+        if len(blocks) > 50:
+            issues.append(f"Too many blocks: {len(blocks)} (max: 50)")
+        
+        for i, block in enumerate(blocks):
+            # Check required type field
+            if 'type' not in block:
+                issues.append(f"Block {i}: Missing 'type' field")
+                continue
+                
+            block_type = block.get('type')
+            
+            # Validate section blocks
+            if block_type == 'section':
+                if 'text' not in block:
+                    issues.append(f"Block {i}: Section missing 'text' field")
+                elif 'text' in block.get('text', {}):
+                    text_content = block['text']['text']
+                    # Slack limit: 3000 characters per text block
+                    if len(text_content) > 3000:
+                        issues.append(f"Block {i}: Text too long ({len(text_content)} chars, max: 3000)")
+            
+            # Validate image blocks
+            elif block_type == 'image':
+                if 'image_url' not in block:
+                    issues.append(f"Block {i}: Image missing 'image_url' field")
+                elif not block.get('image_url', '').startswith(('http://', 'https://')):
+                    issues.append(f"Block {i}: Invalid image URL: {block.get('image_url')}")
+                
+                if 'alt_text' not in block:
+                    issues.append(f"Block {i}: Image missing 'alt_text' field")
+                elif len(block.get('alt_text', '')) > 2000:
+                    issues.append(f"Block {i}: Alt text too long ({len(block.get('alt_text', ''))} chars, max: 2000)")
+        
+        return len(issues) == 0, issues
 
-    return response.json()
+    try:
+        # Parse slack_blocks from JSON string to object for the API
+        import json as json_module
+        if isinstance(slack_blocks, str):
+            slack_blocks_parsed = json_module.loads(slack_blocks)
+        else:
+            slack_blocks_parsed = slack_blocks
+        
+        # Validate blocks before sending
+        is_valid, validation_issues = validate_slack_blocks(slack_blocks_parsed)
+        if not is_valid:
+            print(f"[WARNING] Block validation issues: {validation_issues}")
+            # Continue anyway but log the issues
+        
+        # Update data with parsed blocks
+        data['blocks'] = slack_blocks_parsed
+        
+        # Additional validation - check total payload size
+        payload_size = len(json_module.dumps(data))
+        if payload_size > 100000:  # Slack API limit is approximately 100KB
+            print(f"[WARNING] Large payload size: {payload_size} bytes")
+        
+        # Log the request for debugging
+        print(f"[DEBUG] Sending Slack message to channel: {channel}")
+        print(f"[DEBUG] Has images: {has_inline_images}")
+        print(f"[DEBUG] Block count: {len(slack_blocks_parsed) if slack_blocks_parsed else 0}")
+        print(f"[DEBUG] Text length: {len(text_message)}")
+        print(f"[DEBUG] Payload size: {payload_size} bytes")
+        
+        response = requests.post(url, headers=headers, json=data, timeout=30)
+        
+        # Check HTTP status
+        if response.status_code != 200:
+            print(f"[ERROR] HTTP error {response.status_code}: {response.text}")
+            return {"ok": False, "error": f"http_error_{response.status_code}", "details": response.text}
+        
+        result = response.json()
+        
+        # Log response for debugging
+        if result.get('ok'):
+            print(f"[SUCCESS] Slack message sent successfully. Message TS: {result.get('ts')}")
+        else:
+            print(f"[ERROR] Slack API error: {result}")
+            print(f"[ERROR] Request data keys: {list(data.keys())}")
+            if 'blocks' in data and data['blocks']:
+                print(f"[ERROR] First block: {data['blocks'][0]}")
+            
+        return result
+        
+    except json_module.JSONDecodeError as e:
+        error_msg = f"[ERROR] Failed to parse slack blocks JSON: {e}"
+        print(error_msg)
+        return {"ok": False, "error": "json_parse_error", "details": str(e)}
+        
+    except requests.exceptions.RequestException as e:
+        error_msg = f"[ERROR] Request to Slack API failed: {e}"
+        print(error_msg)
+        return {"ok": False, "error": "request_failed", "details": str(e)}
+        
+    except Exception as e:
+        error_msg = f"[ERROR] Unexpected error in send_slack_message: {e}"
+        print(error_msg)
+        return {"ok": False, "error": "unexpected_error", "details": str(e)}
 
 def send_audio_to_slack(text, chat_id=None, ts=None):
     """
