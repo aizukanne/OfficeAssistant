@@ -505,6 +505,7 @@ def get_available_functions(source):
         "get_users": get_users,
         "get_channels": get_channels,
         "send_as_pdf": send_as_pdf,
+        "send_as_excel": send_as_excel,
         "list_files": list_files,
         "solve_maths": solve_maths,
         "odoo_get_mapped_models": odoo_get_mapped_models,
@@ -1247,6 +1248,209 @@ def send_as_pdf(text, chat_id, title, ts=None, theme='professional', include_tit
         if os.path.exists(pdf_path):
             os.remove(pdf_path)
             
+    return status
+
+
+def parse_excel_data(data):
+    """
+    Parse various input formats into standardized structure for Excel generation.
+
+    Args:
+        data (str): Input data in JSON, CSV, or other structured format
+
+    Returns:
+        tuple: (headers, rows) where headers is list of column names and rows is list of dictionaries
+    """
+    try:
+        # Try parsing as JSON first
+        if isinstance(data, str) and (data.strip().startswith('[') or data.strip().startswith('{')):
+            parsed_data = json.loads(data)
+            if isinstance(parsed_data, list) and len(parsed_data) > 0:
+                if isinstance(parsed_data[0], dict):
+                    headers = list(parsed_data[0].keys())
+                    return headers, parsed_data
+                else:
+                    # List of lists format
+                    headers = [f"Column_{i+1}" for i in range(len(parsed_data[0]))]
+                    rows = [dict(zip(headers, row)) for row in parsed_data]
+                    return headers, rows
+
+        # Try parsing as CSV
+        if '\n' in data and (',' in data or '\t' in data):
+            lines = data.strip().split('\n')
+            delimiter = ',' if ',' in data else '\t'
+
+            reader = csv.DictReader(lines, delimiter=delimiter)
+            rows = list(reader)
+            if rows:
+                headers = list(rows[0].keys())
+                return headers, rows
+
+        # Fallback: treat as single cell data
+        return ['Data'], [{'Data': data}]
+
+    except json.JSONDecodeError:
+        # If JSON parsing fails, try CSV
+        try:
+            lines = data.strip().split('\n')
+            delimiter = ',' if ',' in data else '\t'
+            reader = csv.DictReader(lines, delimiter=delimiter)
+            rows = list(reader)
+            if rows:
+                headers = list(rows[0].keys())
+                return headers, rows
+        except:
+            pass
+
+    except Exception as e:
+        logger.error(f"Error parsing excel data: {str(e)}")
+
+    # Ultimate fallback
+    return ['Data'], [{'Data': str(data)}]
+
+
+class ExcelGenerator:
+    """
+    Excel generation class with basic formatting and styling.
+    """
+
+    def __init__(self, title, sheet_name='Sheet1'):
+        """Initialize Excel generator with workbook and worksheet."""
+        self.workbook = openpyxl.Workbook()
+        self.worksheet = self.workbook.active
+        self.worksheet.title = sheet_name
+        self.title = title
+
+    def write_data(self, headers, rows, include_headers=True):
+        """
+        Write data to Excel worksheet with basic formatting.
+
+        Args:
+            headers (list): Column headers
+            rows (list): List of dictionaries containing row data
+            include_headers (bool): Whether to include header row
+        """
+        from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
+        from openpyxl.utils import get_column_letter
+
+        # Define styles
+        header_font = Font(bold=True, color="FFFFFF")
+        header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+        border = Border(left=Side(border_style="thin"),
+                       right=Side(border_style="thin"),
+                       top=Side(border_style="thin"),
+                       bottom=Side(border_style="thin"))
+        center_alignment = Alignment(horizontal="center", vertical="center")
+
+        row_num = 1
+
+        # Write headers if enabled
+        if include_headers:
+            for col_num, header in enumerate(headers, 1):
+                cell = self.worksheet.cell(row=row_num, column=col_num)
+                cell.value = header
+                cell.font = header_font
+                cell.fill = header_fill
+                cell.border = border
+                cell.alignment = center_alignment
+            row_num += 1
+
+        # Write data rows
+        for row_data in rows:
+            for col_num, header in enumerate(headers, 1):
+                cell = self.worksheet.cell(row=row_num, column=col_num)
+                cell.value = row_data.get(header, "")
+                cell.border = border
+
+                # Auto-format numbers
+                if isinstance(cell.value, (int, float)):
+                    cell.alignment = Alignment(horizontal="right")
+                elif isinstance(cell.value, str):
+                    cell.alignment = Alignment(horizontal="left")
+
+            row_num += 1
+
+        # Auto-size columns
+        for col_num in range(1, len(headers) + 1):
+            column_letter = get_column_letter(col_num)
+            column = self.worksheet[column_letter]
+            max_length = 0
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 50)  # Cap width at 50
+            self.worksheet.column_dimensions[column_letter].width = adjusted_width
+
+    def save(self, filepath):
+        """Save workbook to specified file path."""
+        self.workbook.save(filepath)
+
+
+def send_as_excel(data, chat_id, title, ts=None, sheet_name='Sheet1', include_headers=True):
+    """
+    Generate Excel spreadsheet from structured data and upload to Slack.
+
+    Args:
+        data (str): Structured data (JSON, CSV, etc.)
+        chat_id (str): Slack channel ID
+        title (str): Excel filename (without .xlsx extension)
+        ts (str, optional): Slack thread timestamp
+        sheet_name (str, optional): Worksheet name
+        include_headers (bool, optional): Whether to include column headers
+
+    Returns:
+        str: Status message indicating success or failure
+    """
+    excel_path = f"/tmp/{title}.xlsx"
+
+    try:
+        # Parse input data
+        headers, rows = parse_excel_data(data)
+
+        if not rows:
+            return "Failure: No valid data found to convert to Excel"
+
+        # Generate Excel file
+        excel_generator = ExcelGenerator(title, sheet_name)
+        excel_generator.write_data(headers, rows, include_headers)
+        excel_generator.save(excel_path)
+
+        # Upload to S3
+        try:
+            bucket_name = docs_bucket_name
+            folder_name = 'uploads'
+            file_key = f"{folder_name}/{title}.xlsx"
+            s3_client = boto3.client('s3')
+            s3_client.upload_file(excel_path, bucket_name, file_key)
+            s3_status = "uploaded to S3"
+        except NameError:
+            s3_status = "S3 upload skipped (docs_bucket_name not defined)"
+        except Exception as s3_error:
+            s3_status = f"S3 upload failed: {s3_error}"
+
+        # Upload to Slack
+        try:
+            send_file_to_slack(excel_path, chat_id, title, ts)
+            slack_status = "sent to Slack"
+        except NameError:
+            slack_status = "Slack upload skipped (send_file_to_slack not defined)"
+        except Exception as slack_error:
+            slack_status = f"Slack upload failed: {slack_error}"
+
+        status = f"Success: Excel file generated with {len(rows)} rows, {s3_status}, and {slack_status}."
+
+    except Exception as e:
+        status = f"Failure: {str(e)}"
+        logger.error(f"Error in send_as_excel: {str(e)}")
+
+    finally:
+        # Clean up temporary file
+        if os.path.exists(excel_path):
+            os.remove(excel_path)
+
     return status
 
 

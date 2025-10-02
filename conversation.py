@@ -572,7 +572,8 @@ def select_cerebras_tools(all_tools):
         "create_slack_channel",
         "invite_users_to_slack_channel",
         "gemini_generate_content",
-        "search_conversation_history"
+        "search_conversation_history",
+        "send_as_excel"
     }
     if isinstance(tool_names, list):
         tool_names = set(tool_names)

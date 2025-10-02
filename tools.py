@@ -709,5 +709,42 @@ tools = [
                 "required": ["chat_id", "query_text"]
             }
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "send_as_excel",
+            "description": "Converts structured data to an Excel spreadsheet and uploads it to a specified Slack channel. Supports JSON data, lists of dictionaries, and CSV-formatted text input. Perfect for creating data reports, tables, and structured information sharing.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "data": {
+                        "type": "string",
+                        "description": "Structured data to convert to Excel. Can be JSON array string, CSV-formatted text, or other structured data formats. Each row should represent a record with consistent fields."
+                    },
+                    "chat_id": {
+                        "type": "string",
+                        "description": "The ID of the Slack channel where the Excel file will be uploaded."
+                    },
+                    "title": {
+                        "type": "string",
+                        "description": "The title of the Excel file to be uploaded (without .xlsx extension)."
+                    },
+                    "ts": {
+                        "type": "string",
+                        "description": "Optional. The thread timestamp (ts) to reply in a thread."
+                    },
+                    "sheet_name": {
+                        "type": "string",
+                        "description": "Optional. The name of the worksheet. Defaults to 'Sheet1'."
+                    },
+                    "include_headers": {
+                        "type": "boolean",
+                        "description": "Optional. Whether to include column headers in the first row. Defaults to true."
+                    }
+                },
+                "required": ["data", "chat_id", "title"]
+            }
+        }
     }
 ]
