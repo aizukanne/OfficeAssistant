@@ -760,19 +760,25 @@ def upload_image_content_to_s3(image_content: bytes, mime_type: str) -> str:
 def gemini_generate_content(
     prompt: str,
     file_name_prefix: str = "generated_content",
-    model: str = "gemini-2.5-flash-image-preview"
+    model: str = "gemini-2.5-flash-image-preview",
+    input_images: list = None
 ) -> Dict[str, Any]:
     """
     Generate content using Google's Gemini API with support for both text and image outputs.
-    
+    Supports text-to-image generation and image editing (text-and-image-to-image).
+
     This function integrates with the existing system's Gemini API configuration and
     AWS S3 infrastructure for image storage.
-    
+
     Args:
         prompt (str): The text prompt to send to Gemini
         file_name_prefix (str): Prefix for generated file names (default: "generated_content")
         model (str): Gemini model to use (default: "gemini-2.5-flash-image-preview")
-    
+        input_images (list): Optional list of input images for editing. Each item can be:
+            - A URL string (will be downloaded and converted to base64)
+            - A dict with 'data' (base64 string) and 'mime_type' keys
+            - Max 3 images supported
+
     Returns:
         Dict[str, Any]: Dictionary containing:
             - "success": bool indicating if the operation was successful
@@ -802,16 +808,61 @@ def gemini_generate_content(
             "x-goog-api-key": gemini_api_key
         }
         
+        # Prepare the parts array for the request
+        parts = []
+
+        # Add input images if provided (for image editing)
+        if input_images:
+            # Limit to 3 images as per Gemini API documentation
+            for img in input_images[:3]:
+                if isinstance(img, str):
+                    # If it's a URL, download and convert to base64
+                    try:
+                        # Download image with Slack authorization if needed
+                        headers = {}
+                        if 'slack' in img:
+                            headers = {'Authorization': f'Bearer {slack_bot_token}'}
+
+                        img_response = requests.get(img, headers=headers, timeout=30)
+                        img_response.raise_for_status()
+
+                        # Convert to base64
+                        img_data = base64.b64encode(img_response.content).decode('utf-8')
+
+                        # Determine mime type
+                        content_type = img_response.headers.get('Content-Type', 'image/png')
+                        mime_type = content_type.split(';')[0].strip()
+
+                        parts.append({
+                            "inline_data": {
+                                "mime_type": mime_type,
+                                "data": img_data
+                            }
+                        })
+                    except Exception as e:
+                        result["error"] = f"Failed to download input image from {img}: {str(e)}"
+                        return result
+
+                elif isinstance(img, dict) and 'data' in img and 'mime_type' in img:
+                    # If it's already a dict with base64 data
+                    parts.append({
+                        "inline_data": {
+                            "mime_type": img['mime_type'],
+                            "data": img['data']
+                        }
+                    })
+
+        # Add the text prompt
+        parts.append({
+            "text": prompt
+        })
+
         # Prepare the request payload
         payload = {
             "contents": [
                 {
                     "role": "user",
-                    "parts": [
-                        {
-                            "text": prompt
-                        }
-                    ]
+                    "parts": parts
                 }
             ],
             "generationConfig": {

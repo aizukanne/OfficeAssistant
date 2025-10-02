@@ -664,14 +664,21 @@ tools = [
         "type": "function",
         "function": {
             "name": "gemini_generate_content",
-            "description": "Generate images using Google's Gemini Nano Banana. Creates beautiful images based on a provided description. Perfect for creating visual content, illustrations, diagrams, and creative writing with accompanying images.",
+            "description": "Generate or edit images using Google's Gemini. Supports text-to-image generation and image editing (text-and-image-to-image). Creates beautiful images based on descriptions, or edits existing images with text instructions. Perfect for creating visual content, illustrations, diagrams, image modifications, and creative compositions.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "prompt": {
                         "type": "string",
-                        "description": " A description of the image you want generated. Examples: 'Generate an image of a banana wearing a costume.', 'Generate a diagram showing how solar panels work', 'Generate an image for a blog post about cooking african dishes'"
+                        "description": "A description of the image you want generated or editing instructions for input images. Examples: 'Generate an image of a banana wearing a costume', 'Generate a diagram showing how solar panels work', 'Make the cat wear a bow tie and add a fancy restaurant background'"
                     },
+                    "input_images": {
+                        "type": "array",
+                        "description": "Optional list of input image URLs for editing. Supports up to 3 images. Each item should be an image URL that will be downloaded and used as context for the generation. Use this for image editing tasks.",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
                 },
                 "required": ["prompt"]
             }
