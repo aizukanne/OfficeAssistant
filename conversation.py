@@ -7,7 +7,7 @@ import logging
 import requests
 from typing import List, Dict, Any, Optional
 
-from config import client, openrouter_client, cerebras_api_key, ai_temperature, slack_bot_token
+from config import client, openrouter_client, cerebras_api_key, ai_temperature, slack_bot_token, openai_api_key
 from tools import tools  # Import tools from tools.py
 from storage import decimal_default
 
@@ -359,7 +359,7 @@ def make_cerebras_conversation(system_text, assistant_text, display_name, all_re
 
 def make_openai_vision_call(client, conversations):
     try:
-        # Prepare the API call   
+        # Prepare the API call
         response = client.chat.completions.create(
             temperature=ai_temperature,
             model="gpt-5-2025-08-07",
@@ -371,6 +371,104 @@ def make_openai_vision_call(client, conversations):
         return response.choices[0].message
     except Exception as e:
         print(f"An error occurred during the OpenAI Vision API call: {e}")
+        return None
+
+
+def make_openai_gpt5_call(client, conversations, verbosity="low", reasoning_effort="medium"):
+    """
+    Make OpenAI GPT-5 API call with GPT-5 specific parameters using Responses API.
+
+    Args:
+        client: OpenAI client instance (not used, kept for compatibility)
+        conversations: List of conversation messages
+        verbosity (str): Response verbosity level - "low", "medium", or "high". Default: "low"
+        reasoning_effort (str): Reasoning depth - "minimal", "low", "medium", or "high". Default: "medium"
+
+    Returns:
+        Response message object or None on error
+    """
+    try:
+        # Convert conversations to Responses API input format
+        # Responses API uses "input" instead of "messages" and different structure
+        input_messages = []
+        for msg in conversations:
+            content = msg.get("content", "")
+            # Handle if content is already an array (e.g., multimodal messages)
+            if isinstance(content, list):
+                # Convert each item in the array to proper format
+                formatted_content = []
+                for item in content:
+                    if isinstance(item, dict):
+                        # Check if it has 'type' and update if needed
+                        if item.get("type") == "text":
+                            formatted_content.append({"type": "input_text", "text": item.get("text", "")})
+                        elif item.get("type") == "image_url":
+                            formatted_content.append({"type": "input_image", "image_url": item.get("image_url")})
+                        else:
+                            formatted_content.append(item)
+                    else:
+                        formatted_content.append({"type": "input_text", "text": str(item)})
+            else:
+                # String content - wrap in proper format
+                formatted_content = [{"type": "input_text", "text": str(content)}]
+
+            input_messages.append({
+                "role": msg.get("role"),
+                "content": formatted_content
+            })
+
+        # Prepare the request payload for Responses API
+        payload = {
+            "model": "gpt-5-2025-08-07",
+            "input": input_messages,
+            "text": {
+                "verbosity": verbosity
+            },
+            "reasoning": {
+                "effort": reasoning_effort
+            },
+            "max_output_tokens": 5500,
+            "tools": tools
+        }
+
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {openai_api_key}"
+        }
+
+        # Make REST API call to OpenAI Responses endpoint
+        response = requests.post(
+            "https://api.openai.com/v1/responses",
+            headers=headers,
+            json=payload,
+            timeout=120
+        )
+
+        # Check for HTTP errors
+        response.raise_for_status()
+
+        # Parse the response
+        response_data = response.json()
+        print(response_data)
+
+        # Create a simple object to match the expected return format
+        class MessageObject:
+            def __init__(self, data):
+                choice = data['choices'][0]
+                self.content = choice['message'].get('content')
+                self.role = choice['message'].get('role')
+                self.tool_calls = choice['message'].get('tool_calls')
+                self.function_call = choice['message'].get('function_call')
+
+        return MessageObject(response_data)
+
+    except requests.exceptions.RequestException as e:
+        print(f"An error occurred during the OpenAI GPT-5 Responses API call: {e}")
+        if hasattr(e, 'response') and e.response is not None:
+            print(f"Response content: {e.response.text}")
+        return None
+    except Exception as e:
+        print(f"An unexpected error occurred during the OpenAI GPT-5 API call: {e}")
         return None
 
 

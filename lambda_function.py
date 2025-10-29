@@ -82,7 +82,7 @@ from nltk.tokenize import sent_tokenize, word_tokenize
 from conversation import (
     make_text_conversation, make_vision_conversation, make_audio_conversation, make_cerebras_conversation,
     make_openai_vision_call, make_openai_audio_call, ask_openai_o1, make_openrouter_call, make_cerebras_call,
-    serialize_chat_completion_message, handle_message_content, handle_tool_calls
+    serialize_chat_completion_message, handle_message_content, handle_tool_calls, make_openai_gpt5_call
 )
 
 from media_processing import (
@@ -1309,38 +1309,77 @@ def parse_excel_data(data):
     return ['Data'], [{'Data': str(data)}]
 
 
+# Predefined Excel color schemes
+EXCEL_COLOR_SCHEMES = {
+    'blue': {'header_color': '4472C4', 'header_font_color': 'FFFFFF'},
+    'green': {'header_color': '70AD47', 'header_font_color': 'FFFFFF'},
+    'yellow': {'header_color': 'FFC000', 'header_font_color': '000000'},
+    'red': {'header_color': 'C00000', 'header_font_color': 'FFFFFF'},
+    'purple': {'header_color': '7030A0', 'header_font_color': 'FFFFFF'},
+    'orange': {'header_color': 'ED7D31', 'header_font_color': 'FFFFFF'},
+    'teal': {'header_color': '00B0F0', 'header_font_color': 'FFFFFF'},
+    'gray': {'header_color': '7F7F7F', 'header_font_color': 'FFFFFF'}
+}
+
+
 class ExcelGenerator:
     """
-    Excel generation class with basic formatting and styling.
+    Excel generation class with enhanced formatting and styling.
+    Supports customizable colors, freeze panes, row heights, and text wrapping.
     """
 
-    def __init__(self, title, sheet_name='Sheet1'):
-        """Initialize Excel generator with workbook and worksheet."""
+    def __init__(self, title, sheet_name='Sheet1', header_color='4472C4',
+                 header_font_color='FFFFFF', header_row_height=30,
+                 freeze_header=True, wrap_header_text=True):
+        """
+        Initialize Excel generator with workbook and worksheet.
+        
+        Args:
+            title (str): Title of the workbook
+            sheet_name (str): Name of the worksheet
+            header_color (str): Hex color for header background (default: blue '4472C4')
+            header_font_color (str): Hex color for header text (default: white 'FFFFFF')
+            header_row_height (int): Height of header row in points (default: 30)
+            freeze_header (bool): Whether to freeze header row (default: True)
+            wrap_header_text (bool): Whether to wrap text in headers (default: True)
+        """
         self.workbook = openpyxl.Workbook()
         self.worksheet = self.workbook.active
         self.worksheet.title = sheet_name
         self.title = title
+        self.header_color = header_color
+        self.header_font_color = header_font_color
+        self.header_row_height = header_row_height
+        self.freeze_header = freeze_header
+        self.wrap_header_text = wrap_header_text
 
-    def write_data(self, headers, rows, include_headers=True):
+    def write_data(self, headers, rows, include_headers=True, column_widths=None):
         """
-        Write data to Excel worksheet with basic formatting.
+        Write data to Excel worksheet with enhanced formatting and styling.
 
         Args:
             headers (list): Column headers
             rows (list): List of dictionaries containing row data
             include_headers (bool): Whether to include header row
+            column_widths (list, optional): Manual column widths. If None, auto-sizes.
         """
         from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
         from openpyxl.utils import get_column_letter
 
-        # Define styles
-        header_font = Font(bold=True, color="FFFFFF")
-        header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
-        border = Border(left=Side(border_style="thin"),
-                       right=Side(border_style="thin"),
-                       top=Side(border_style="thin"),
-                       bottom=Side(border_style="thin"))
-        center_alignment = Alignment(horizontal="center", vertical="center")
+        # Define styles using instance parameters
+        header_font = Font(bold=True, color=self.header_font_color, size=11)
+        header_fill = PatternFill(start_color=self.header_color,
+                                  end_color=self.header_color,
+                                  fill_type="solid")
+        border = Border(left=Side(style='thin'),
+                       right=Side(style='thin'),
+                       top=Side(style='thin'),
+                       bottom=Side(style='thin'))
+        
+        # Header alignment with optional wrap text
+        header_alignment = Alignment(horizontal="center",
+                                    vertical="center",
+                                    wrap_text=self.wrap_header_text)
 
         row_num = 1
 
@@ -1352,7 +1391,11 @@ class ExcelGenerator:
                 cell.font = header_font
                 cell.fill = header_fill
                 cell.border = border
-                cell.alignment = center_alignment
+                cell.alignment = header_alignment
+            
+            # Set header row height
+            self.worksheet.row_dimensions[row_num].height = self.header_row_height
+            
             row_num += 1
 
         # Write data rows
@@ -1370,26 +1413,40 @@ class ExcelGenerator:
 
             row_num += 1
 
-        # Auto-size columns
-        for col_num in range(1, len(headers) + 1):
-            column_letter = get_column_letter(col_num)
-            column = self.worksheet[column_letter]
-            max_length = 0
-            for cell in column:
-                try:
-                    if len(str(cell.value)) > max_length:
-                        max_length = len(str(cell.value))
-                except:
-                    pass
-            adjusted_width = min(max_length + 2, 50)  # Cap width at 50
-            self.worksheet.column_dimensions[column_letter].width = adjusted_width
+        # Set column widths (manual or auto-size)
+        if column_widths:
+            # Use manual column widths if provided
+            for col_num, width in enumerate(column_widths, start=1):
+                if col_num <= len(headers):
+                    column_letter = get_column_letter(col_num)
+                    self.worksheet.column_dimensions[column_letter].width = width
+        else:
+            # Auto-size columns
+            for col_num in range(1, len(headers) + 1):
+                column_letter = get_column_letter(col_num)
+                column = self.worksheet[column_letter]
+                max_length = 0
+                for cell in column:
+                    try:
+                        if len(str(cell.value)) > max_length:
+                            max_length = len(str(cell.value))
+                    except:
+                        pass
+                adjusted_width = min(max_length + 2, 50)  # Cap width at 50
+                self.worksheet.column_dimensions[column_letter].width = adjusted_width
+        
+        # Freeze header row if enabled
+        if include_headers and self.freeze_header:
+            self.worksheet.freeze_panes = 'A2'
 
     def save(self, filepath):
         """Save workbook to specified file path."""
         self.workbook.save(filepath)
 
 
-def send_as_excel(data, chat_id, title, ts=None, sheet_name='Sheet1', include_headers=True):
+def send_as_excel(data, chat_id, title, ts=None, sheet_name='Sheet1', include_headers=True,
+                  color_scheme='blue', header_row_height=30, freeze_header=True,
+                  wrap_header_text=True, column_widths=None):
     """
     Generate Excel spreadsheet from structured data and upload to Slack.
 
@@ -1400,6 +1457,11 @@ def send_as_excel(data, chat_id, title, ts=None, sheet_name='Sheet1', include_he
         ts (str, optional): Slack thread timestamp
         sheet_name (str, optional): Worksheet name
         include_headers (bool, optional): Whether to include column headers
+        color_scheme (str, optional): Color scheme name ('blue', 'green', 'yellow', etc.)
+        header_row_height (int, optional): Height of header row in points (default: 30)
+        freeze_header (bool, optional): Whether to freeze header row (default: True)
+        wrap_header_text (bool, optional): Whether to wrap text in headers (default: True)
+        column_widths (list, optional): Manual column widths. If None, auto-sizes.
 
     Returns:
         str: Status message indicating success or failure
@@ -1413,9 +1475,20 @@ def send_as_excel(data, chat_id, title, ts=None, sheet_name='Sheet1', include_he
         if not rows:
             return "Failure: No valid data found to convert to Excel"
 
-        # Generate Excel file
-        excel_generator = ExcelGenerator(title, sheet_name)
-        excel_generator.write_data(headers, rows, include_headers)
+        # Get color scheme
+        scheme = EXCEL_COLOR_SCHEMES.get(color_scheme.lower(), EXCEL_COLOR_SCHEMES['blue'])
+        
+        # Generate Excel file with enhanced styling
+        excel_generator = ExcelGenerator(
+            title=title,
+            sheet_name=sheet_name,
+            header_color=scheme['header_color'],
+            header_font_color=scheme['header_font_color'],
+            header_row_height=header_row_height,
+            freeze_header=freeze_header,
+            wrap_header_text=wrap_header_text
+        )
+        excel_generator.write_data(headers, rows, include_headers, column_widths)
         excel_generator.save(excel_path)
 
         # Upload to S3
