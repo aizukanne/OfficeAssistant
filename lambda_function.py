@@ -274,7 +274,7 @@ def lambda_handler(event, context):
             summary_len = 10
             full_text_len = 2
             relevant = 2
-            system_text = prompts['instruct_basic']
+            system_text = prompts['instruct_basic'] + " " + prompts['humanify']
             assistant_text = ""
         elif route_name == 'writing':
             system_text = prompts['system_text']
@@ -283,12 +283,12 @@ def lambda_handler(event, context):
             full_text_len = 5 
         elif route_name == 'research':
             system_text = prompts['system_text']
-            assistant_text = prompts['assistant_text'] + " " + prompts['instruct_research'] + " " + prompts['instruct_Context_Clarification'] + " " + prompts['instruct_Problem_Solving']
+            assistant_text = prompts['assistant_text'] + " " + prompts['instruct_research'] + " " + prompts['instruct_Context_Clarification'] + " " + prompts['instruct_Problem_Solving']  + " " + prompts['humanify']
             summary_len = 10
             full_text_len = 5 
         elif route_name == 'odoo_erp':
             system_text = prompts['system_text']
-            assistant_text = prompts['assistant_text'] + " " + prompts['odoo_search'] + " " + prompts['instruct_Context_Clarification']
+            assistant_text = prompts['assistant_text'] + " " + prompts['odoo_search'] + " " + prompts['instruct_Context_Clarification']  + " " + prompts['humanify']
             summary_len = 2
             full_text_len = 5
             relevant = 0
@@ -296,7 +296,7 @@ def lambda_handler(event, context):
         else:
             route_name = 'chitchat'
             system_text = prompts['system_text']
-            assistant_text = prompts['assistant_text'] + " " + prompts['odoo_search'] + " " + prompts['instruct_Context_Clarification'] + " " + prompts['instruct_chain_of_thought']
+            assistant_text = prompts['assistant_text'] + " " + prompts['odoo_search'] + " " + prompts['instruct_Context_Clarification'] + " " + prompts['instruct_chain_of_thought']  + " " + prompts['humanify']
             summary_len = 10
             full_text_len = 5
 
@@ -373,16 +373,18 @@ def lambda_handler(event, context):
             conversation = make_vision_conversation(system_text, assistant_text, display_name, 
                                                 all_relevant_messages, msg_history_summary, 
                                                 all_messages, text, models, image_urls)
-            response_message = make_openai_vision_call(client, conversation)
+            #response_message = make_openai_vision_call(client, conversation)
+            response_message = make_openai_gpt5_call(openai_api_key, conversation)
         else:
-            if route_name in ['chitchat', 'writing']:
+            if route_name in ['cerebras']:
                 # Regular vision conversation for text-only
                 conversation = make_cerebras_conversation(system_text, assistant_text, display_name, all_relevant_messages, msg_history_summary, all_messages, text, models)
                 #response_message = make_openrouter_call(openrouter_client, conversation)
                 response_message = make_cerebras_call(conversation)
             else:
                 conversation = make_vision_conversation(system_text, assistant_text, display_name, all_relevant_messages, msg_history_summary, all_messages, text, models)
-                response_message = make_openai_vision_call(client, conversation)
+                #response_message = make_openai_vision_call(client, conversation)
+                response_message = make_openai_gpt5_call(openai_api_key, conversation)
 
     # Save the user's message to Database 
     save_message_weaviate(user_table, chat_id, text, thread_ts, image_urls)
@@ -419,19 +421,21 @@ def lambda_handler(event, context):
                 response_message = make_openai_audio_call(client, conversation_with_tool_responses)
             elif image_urls or has_image_urls:
                 # Use vision for image-based conversations
-                response_message = make_openai_vision_call(client, conversation_with_tool_responses)
+                #response_message = make_openai_vision_call(client, conversation_with_tool_responses)
+                response_message = make_openai_gpt5_call(openai_api_key, conversation_with_tool_responses)
             else:
-                if route_name in ['chitchat', 'writing']:
+                if route_name in ['cerebras']:
                     #response_message = make_openrouter_call(openrouter_client, conversation_with_tool_responses)
                     response_message = make_cerebras_call(conversation_with_tool_responses)
                 else:
-                    response_message = make_openai_vision_call(client, conversation_with_tool_responses)
+                    #response_message = make_openai_vision_call(client, conversation_with_tool_responses)
+                    response_message = make_openai_gpt5_call(openai_api_key, conversation_with_tool_responses)
         else:
 
             weaviate_client.close()
-            break  # Exit the loop if there are no tool calls
+            break  # Exit the loop if there are no tool calls    
 
-
+    
 # Function to convert non-serializable types for JSON serialization  
 def decimal_default(obj):
     if isinstance(obj, Decimal):

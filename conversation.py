@@ -374,48 +374,99 @@ def make_openai_vision_call(client, conversations):
         return None
 
 
-def make_openai_gpt5_call(client, conversations, verbosity="low", reasoning_effort="medium"):
+def make_openai_gpt5_call(openai_api_key, conversations, tools=tools, verbosity="low", reasoning_effort="medium"):
     """
     Make OpenAI GPT-5 API call with GPT-5 specific parameters using Responses API.
 
     Args:
-        client: OpenAI client instance (not used, kept for compatibility)
+        openai_api_key: OpenAI API key
         conversations: List of conversation messages
+        tools: Optional list of function/tool definitions (Chat Completions format)
         verbosity (str): Response verbosity level - "low", "medium", or "high". Default: "low"
         reasoning_effort (str): Reasoning depth - "minimal", "low", "medium", or "high". Default: "medium"
 
     Returns:
-        Response message object or None on error
+        Message object compatible with Chat Completions API format, or None on error
     """
     try:
         # Convert conversations to Responses API input format
-        # Responses API uses "input" instead of "messages" and different structure
         input_messages = []
         for msg in conversations:
             content = msg.get("content", "")
-            # Handle if content is already an array (e.g., multimodal messages)
-            if isinstance(content, list):
-                # Convert each item in the array to proper format
-                formatted_content = []
-                for item in content:
-                    if isinstance(item, dict):
-                        # Check if it has 'type' and update if needed
-                        if item.get("type") == "text":
-                            formatted_content.append({"type": "input_text", "text": item.get("text", "")})
-                        elif item.get("type") == "image_url":
-                            formatted_content.append({"type": "input_image", "image_url": item.get("image_url")})
-                        else:
-                            formatted_content.append(item)
-                    else:
-                        formatted_content.append({"type": "input_text", "text": str(item)})
-            else:
-                # String content - wrap in proper format
-                formatted_content = [{"type": "input_text", "text": str(content)}]
+            role = msg.get("role")
 
-            input_messages.append({
-                "role": msg.get("role"),
-                "content": formatted_content
-            })
+            # Handle tool results - convert to function_call_output format
+            if role == "tool":
+                # Tool results need special handling for Responses API
+                input_messages.append({
+                    "type": "function_call_output",
+                    "call_id": msg.get("tool_call_id"),
+                    "output": str(content)
+                })
+                continue
+
+            # Check if this message has tool_calls (assistant making function calls)
+            tool_calls = msg.get("tool_calls")
+
+            # For messages with content, add as a message type
+            if content:
+                # Handle if content is already an array (e.g., multimodal messages)
+                if isinstance(content, list):
+                    # Convert each item in the array to proper format
+                    formatted_content = []
+                    for item in content:
+                        if isinstance(item, dict):
+                            # Check if it has 'type' and update if needed
+                            if item.get("type") == "text":
+                                # Use input_text for user/system, output_text for assistant
+                                text_type = "output_text" if role == "assistant" else "input_text"
+                                formatted_content.append({"type": text_type, "text": item.get("text", "")})
+                            elif item.get("type") == "image_url":
+                                formatted_content.append({"type": "input_image", "image_url": item.get("image_url")})
+                            else:
+                                formatted_content.append(item)
+                        else:
+                            # Use input_text for user/system, output_text for assistant
+                            text_type = "output_text" if role == "assistant" else "input_text"
+                            formatted_content.append({"type": text_type, "text": str(item)})
+                else:
+                    # String content - wrap in proper format
+                    # Use input_text for user/system, output_text for assistant
+                    text_type = "output_text" if role == "assistant" else "input_text"
+                    formatted_content = [{"type": text_type, "text": str(content)}]
+
+                input_messages.append({
+                    "role": role,
+                    "content": formatted_content
+                })
+
+            # If there are tool_calls, add them as function_call items
+            if tool_calls:
+                for tool_call in tool_calls:
+                    input_messages.append({
+                        "type": "function_call",
+                        "call_id": tool_call.get("id"),
+                        "name": tool_call.get("function", {}).get("name"),
+                        "arguments": tool_call.get("function", {}).get("arguments", "{}")
+                    })
+
+        # Convert tools from Chat Completions format to Responses API format
+        converted_tools = None
+        if tools:
+            converted_tools = []
+            for tool in tools:
+                if tool.get("type") == "function" and "function" in tool:
+                    # Chat Completions format - flatten it
+                    func = tool["function"]
+                    converted_tools.append({
+                        "type": "function",
+                        "name": func.get("name"),
+                        "description": func.get("description"),
+                        "parameters": func.get("parameters")
+                    })
+                else:
+                    # Already in Responses API format or different type
+                    converted_tools.append(tool)
 
         # Prepare the request payload for Responses API
         payload = {
@@ -427,9 +478,12 @@ def make_openai_gpt5_call(client, conversations, verbosity="low", reasoning_effo
             "reasoning": {
                 "effort": reasoning_effort
             },
-            "max_output_tokens": 5500,
-            "tools": tools
+            "max_output_tokens": 5500
         }
+        
+        # Add tools if provided
+        if converted_tools:
+            payload["tools"] = converted_tools
 
         headers = {
             "Content-Type": "application/json",
@@ -451,14 +505,53 @@ def make_openai_gpt5_call(client, conversations, verbosity="low", reasoning_effo
         response_data = response.json()
         print(response_data)
 
-        # Create a simple object to match the expected return format
+        # Create a message object compatible with Chat Completions API format
         class MessageObject:
             def __init__(self, data):
-                choice = data['choices'][0]
-                self.content = choice['message'].get('content')
-                self.role = choice['message'].get('role')
-                self.tool_calls = choice['message'].get('tool_calls')
-                self.function_call = choice['message'].get('function_call')
+                # Initialize all attributes to maintain compatibility
+                self.content = None
+                self.role = 'assistant'
+                self.tool_calls = None
+                self.audio = None
+                self.function_call = None  # Deprecated but kept for compatibility
+                
+                # Handle the Responses API output structure
+                if 'output' in data:
+                    output = data['output']
+                    if isinstance(output, list):
+                        # Find the message item in the output
+                        for item in output:
+                            if item.get('type') == 'message':
+                                # Extract role
+                                self.role = item.get('role', 'assistant')
+                                
+                                # Extract text content
+                                content_items = item.get('content', [])
+                                for content_item in content_items:
+                                    if content_item.get('type') == 'output_text':
+                                        self.content = content_item.get('text', '')
+                                        break
+                                break
+                        
+                        # Check for function calls (tool calls) in output
+                        # Convert Responses API format to Chat Completions format
+                        tool_calls_list = []
+                        for item in output:
+                            if item.get('type') == 'function_call':
+                                # Convert from Responses API format to Chat Completions format
+                                tool_call = {
+                                    "id": item.get('call_id'),
+                                    "type": "function",
+                                    "function": {
+                                        "name": item.get('name'),
+                                        "arguments": item.get('arguments', '{}')
+                                    }
+                                }
+                                tool_calls_list.append(tool_call)
+                        
+                        # Only set tool_calls if there are any
+                        if tool_calls_list:
+                            self.tool_calls = tool_calls_list
 
         return MessageObject(response_data)
 
@@ -470,7 +563,6 @@ def make_openai_gpt5_call(client, conversations, verbosity="low", reasoning_effo
     except Exception as e:
         print(f"An unexpected error occurred during the OpenAI GPT-5 API call: {e}")
         return None
-
 
 def make_openrouter_call(client, conversations):
     cerebras_tools = select_cerebras_tools(tools)
