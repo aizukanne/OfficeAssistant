@@ -760,7 +760,7 @@ def upload_image_content_to_s3(image_content: bytes, mime_type: str) -> str:
 def gemini_generate_content(
     prompt: str,
     file_name_prefix: str = "generated_content",
-    model: str = "gemini-2.5-flash-image-preview",
+    model: str = "gemini-3-pro-image-preview",
     input_images: list = None
 ) -> Dict[str, Any]:
     """
