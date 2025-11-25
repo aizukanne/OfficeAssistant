@@ -1,0 +1,1269 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Office Assistant Admin Configuration Schema",
+  "description": "Complete configuration schema for admin UI with validation, grouping, and metadata",
+  "version": "1.0.0",
+  "sections": [
+    {
+      "id": "security",
+      "title": "Security & Authentication",
+      "icon": "lock",
+      "description": "API keys, credentials, and authentication tokens",
+      "priority": 1,
+      "fields": [
+        {
+          "id": "openai_api_key",
+          "label": "OpenAI API Key",
+          "type": "secret",
+          "required": true,
+          "env_var": "OPENAI_API_KEY",
+          "description": "API key for OpenAI services (GPT models, embeddings, TTS, Whisper)",
+          "validation": {
+            "pattern": "^sk-[A-Za-z0-9-_]+$",
+            "minLength": 20,
+            "errorMessage": "Must be a valid OpenAI API key starting with 'sk-'"
+          },
+          "documentation_url": "https://platform.openai.com/api-keys",
+          "test_endpoint": "/api/test/openai"
+        },
+        {
+          "id": "gemini_api_key",
+          "label": "Google Gemini API Key",
+          "type": "secret",
+          "required": false,
+          "env_var": "GEMINI_API_KEY",
+          "description": "API key for Google Gemini AI models",
+          "validation": {
+            "pattern": "^[A-Za-z0-9_-]+$",
+            "minLength": 20
+          },
+          "documentation_url": "https://ai.google.dev/",
+          "test_endpoint": "/api/test/gemini"
+        },
+        {
+          "id": "cerebras_api_key",
+          "label": "Cerebras API Key",
+          "type": "secret",
+          "required": false,
+          "env_var": "CEREBRAS_API_KEY",
+          "description": "API key for Cerebras AI services",
+          "documentation_url": "https://cerebras.ai/",
+          "test_endpoint": "/api/test/cerebras"
+        },
+        {
+          "id": "openrouter_api_key",
+          "label": "OpenRouter API Key",
+          "type": "secret",
+          "required": false,
+          "env_var": "OPENROUTER_API_KEY",
+          "description": "API key for OpenRouter unified LLM API",
+          "documentation_url": "https://openrouter.ai/",
+          "test_endpoint": "/api/test/openrouter"
+        },
+        {
+          "id": "google_api_key",
+          "label": "Google API Key",
+          "type": "secret",
+          "required": false,
+          "env_var": "GOOGLE_API_KEY",
+          "description": "General Google services API key",
+          "documentation_url": "https://console.cloud.google.com/"
+        },
+        {
+          "id": "google_calendar_id",
+          "label": "Google Calendar ID",
+          "type": "text",
+          "required": false,
+          "env_var": "GOOGLE_CALENDAR_ID",
+          "description": "Google Calendar identifier for event management",
+          "placeholder": "your-calendar@group.calendar.google.com"
+        },
+        {
+          "id": "weaviate_api_key",
+          "label": "Weaviate API Key",
+          "type": "secret",
+          "required": true,
+          "env_var": "WEAVIATE_API_KEY",
+          "description": "API key for Weaviate vector database",
+          "documentation_url": "https://console.weaviate.cloud/",
+          "test_endpoint": "/api/test/weaviate"
+        },
+        {
+          "id": "openweather_key",
+          "label": "OpenWeather API Key",
+          "type": "secret",
+          "required": false,
+          "env_var": "OPENWEATHER_KEY",
+          "description": "API key for OpenWeatherMap services",
+          "documentation_url": "https://openweathermap.org/api",
+          "test_endpoint": "/api/test/openweather"
+        },
+        {
+          "id": "custom_search_api_key",
+          "label": "Google Custom Search API Key",
+          "type": "secret",
+          "required": false,
+          "env_var": "CUSTOM_SEARCH_API_KEY",
+          "description": "API key for Google Custom Search"
+        },
+        {
+          "id": "custom_search_id",
+          "label": "Google Custom Search Engine ID",
+          "type": "text",
+          "required": false,
+          "env_var": "CUSTOM_SEARCH_ID",
+          "description": "Custom Search Engine identifier"
+        },
+        {
+          "id": "slack_bot_token",
+          "label": "Slack Bot Token",
+          "type": "secret",
+          "required": false,
+          "env_var": "SLACK_BOT_TOKEN",
+          "description": "OAuth token for Slack bot integration",
+          "validation": {
+            "pattern": "^xoxb-[A-Za-z0-9-]+$",
+            "errorMessage": "Must be a valid Slack bot token starting with 'xoxb-'"
+          },
+          "documentation_url": "https://api.slack.com/authentication/token-types",
+          "test_endpoint": "/api/test/slack"
+        },
+        {
+          "id": "telegram_bot_token",
+          "label": "Telegram Bot Token",
+          "type": "secret",
+          "required": false,
+          "env_var": "TELEGRAM_BOT_TOKEN",
+          "description": "Authentication token for Telegram bot",
+          "validation": {
+            "pattern": "^[0-9]+:[A-Za-z0-9_-]+$",
+            "errorMessage": "Must be a valid Telegram bot token"
+          },
+          "documentation_url": "https://core.telegram.org/bots/tutorial",
+          "test_endpoint": "/api/test/telegram"
+        }
+      ]
+    },
+    {
+      "id": "erp_integrations",
+      "title": "ERP Integrations",
+      "icon": "building",
+      "description": "ERPNext and Odoo system configurations",
+      "priority": 2,
+      "fields": [
+        {
+          "id": "erpnext_base_url",
+          "label": "ERPNext Base URL",
+          "type": "url",
+          "required": false,
+          "env_var": "ERPNEXT_BASE_URL",
+          "default": "https://erp.cerenyi.ai",
+          "description": "Base URL for ERPNext API",
+          "validation": {
+            "pattern": "^https?://[a-zA-Z0-9.-]+(:[0-9]+)?$",
+            "errorMessage": "Must be a valid HTTP/HTTPS URL"
+          },
+          "test_endpoint": "/api/test/erpnext"
+        },
+        {
+          "id": "erpnext_api_key",
+          "label": "ERPNext API Key",
+          "type": "secret",
+          "required": false,
+          "env_var": "ERPNEXT_API_KEY",
+          "description": "API key for ERPNext authentication",
+          "depends_on": "erpnext_base_url"
+        },
+        {
+          "id": "erpnext_api_secret",
+          "label": "ERPNext API Secret",
+          "type": "secret",
+          "required": false,
+          "env_var": "ERPNEXT_API_SECRET",
+          "description": "API secret for ERPNext authentication",
+          "depends_on": "erpnext_base_url"
+        },
+        {
+          "id": "odoo_url",
+          "label": "Odoo Base URL",
+          "type": "url",
+          "required": false,
+          "env_var": "ODOO_URL",
+          "default": "http://167.71.140.93:8069",
+          "description": "Base URL for Odoo ERP system",
+          "validation": {
+            "pattern": "^https?://[a-zA-Z0-9.-]+(:[0-9]+)?$"
+          },
+          "test_endpoint": "/api/test/odoo"
+        },
+        {
+          "id": "odoo_db",
+          "label": "Odoo Database Name",
+          "type": "text",
+          "required": false,
+          "env_var": "ODOO_DB",
+          "default": "Production",
+          "description": "Name of the Odoo database to connect to",
+          "depends_on": "odoo_url"
+        },
+        {
+          "id": "odoo_login",
+          "label": "Odoo Username",
+          "type": "text",
+          "required": false,
+          "env_var": "ODOO_LOGIN",
+          "default": "ai_bot",
+          "description": "Login username for Odoo authentication",
+          "depends_on": "odoo_url"
+        },
+        {
+          "id": "odoo_password",
+          "label": "Odoo Password",
+          "type": "secret",
+          "required": false,
+          "env_var": "ODOO_PASSWORD",
+          "description": "Password for Odoo authentication",
+          "security_warning": "Previously hardcoded - update immediately",
+          "depends_on": "odoo_url"
+        }
+      ]
+    },
+    {
+      "id": "database_storage",
+      "title": "Database & Storage",
+      "icon": "database",
+      "description": "Database tables, S3 buckets, and storage configuration",
+      "priority": 3,
+      "fields": [
+        {
+          "id": "weaviate_url",
+          "label": "Weaviate Cluster URL",
+          "type": "url",
+          "required": true,
+          "env_var": "WEAVIATE_URL",
+          "description": "URL for Weaviate vector database cluster",
+          "validation": {
+            "pattern": "^https?://[a-zA-Z0-9.-]+(:[0-9]+)?$"
+          },
+          "test_endpoint": "/api/test/weaviate"
+        },
+        {
+          "id": "user_messages_table",
+          "label": "User Messages Collection",
+          "type": "text",
+          "required": true,
+          "env_var": "USER_MESSAGES_TABLE",
+          "default": "UserMessages",
+          "description": "Weaviate collection name for user messages"
+        },
+        {
+          "id": "assistant_messages_table",
+          "label": "Assistant Messages Collection",
+          "type": "text",
+          "required": true,
+          "env_var": "ASSISTANT_MESSAGES_TABLE",
+          "default": "AssistantMessages",
+          "description": "Weaviate collection name for assistant messages"
+        },
+        {
+          "id": "slack_usernames_table",
+          "label": "Slack Usernames Table",
+          "type": "text",
+          "required": false,
+          "env_var": "SLACK_USERNAMES_TABLE",
+          "default": "slack_usernames",
+          "description": "DynamoDB table for Slack username mapping"
+        },
+        {
+          "id": "channels_table",
+          "label": "Channels Table",
+          "type": "text",
+          "required": false,
+          "env_var": "CHANNELS_TABLE",
+          "default": "channels_table",
+          "description": "DynamoDB table for channel information"
+        },
+        {
+          "id": "meetings_table",
+          "label": "Meetings Table",
+          "type": "text",
+          "required": false,
+          "env_var": "MEETINGS_TABLE",
+          "default": "meetings_table",
+          "description": "DynamoDB table for meeting data"
+        },
+        {
+          "id": "url_shortener_table",
+          "label": "URL Shortener Table",
+          "type": "text",
+          "required": false,
+          "env_var": "URL_TABLE",
+          "default": "short_urls",
+          "description": "DynamoDB table for shortened URLs"
+        },
+        {
+          "id": "image_bucket_name",
+          "label": "Image Storage Bucket",
+          "type": "text",
+          "required": true,
+          "env_var": "IMAGE_BUCKET_NAME",
+          "default": "mariaimagefolder-us",
+          "description": "S3 bucket name for image storage",
+          "validation": {
+            "pattern": "^[a-z0-9][a-z0-9-]*[a-z0-9]$",
+            "minLength": 3,
+            "maxLength": 63,
+            "errorMessage": "Must be a valid S3 bucket name"
+          }
+        },
+        {
+          "id": "docs_bucket_name",
+          "label": "Documents Storage Bucket",
+          "type": "text",
+          "required": true,
+          "env_var": "DOCS_BUCKET_NAME",
+          "default": "mariadocsfolder-us",
+          "description": "S3 bucket name for document storage",
+          "validation": {
+            "pattern": "^[a-z0-9][a-z0-9-]*[a-z0-9]$",
+            "minLength": 3,
+            "maxLength": 63
+          }
+        }
+      ]
+    },
+    {
+      "id": "ai_models",
+      "title": "AI Model Configuration",
+      "icon": "brain",
+      "description": "AI model selection and generation parameters",
+      "priority": 4,
+      "fields": [
+        {
+          "id": "openai_model_vision",
+          "label": "OpenAI Vision Model",
+          "type": "select",
+          "required": true,
+          "env_var": "OPENAI_MODEL_VISION",
+          "default": "gpt-5-2025-08-07",
+          "description": "OpenAI model for vision and image understanding",
+          "options": [
+            {"value": "gpt-5-2025-08-07", "label": "GPT-5 (Latest)"},
+            {"value": "gpt-4o", "label": "GPT-4 Omni"},
+            {"value": "gpt-4-turbo", "label": "GPT-4 Turbo"},
+            {"value": "gpt-4-vision-preview", "label": "GPT-4 Vision Preview"}
+          ]
+        },
+        {
+          "id": "openai_model_gpt5",
+          "label": "OpenAI GPT-5 Model",
+          "type": "select",
+          "required": true,
+          "env_var": "OPENAI_MODEL_GPT5",
+          "default": "gpt-5-2025-08-07",
+          "description": "OpenAI GPT-5 model identifier",
+          "options": [
+            {"value": "gpt-5-2025-08-07", "label": "GPT-5 (August 2025)"}
+          ]
+        },
+        {
+          "id": "cerebras_model",
+          "label": "Cerebras Model",
+          "type": "select",
+          "required": false,
+          "env_var": "CEREBRAS_MODEL",
+          "default": "gpt-oss-120b",
+          "description": "Cerebras model for inference",
+          "options": [
+            {"value": "gpt-oss-120b", "label": "GPT-OSS 120B"},
+            {"value": "llama3.1-8b", "label": "Llama 3.1 8B"},
+            {"value": "llama3.1-70b", "label": "Llama 3.1 70B"}
+          ]
+        },
+        {
+          "id": "gemini_model",
+          "label": "Google Gemini Model",
+          "type": "select",
+          "required": false,
+          "env_var": "GEMINI_MODEL",
+          "default": "gemini-3-pro-image-preview",
+          "description": "Google Gemini model for image generation",
+          "options": [
+            {"value": "gemini-3-pro-image-preview", "label": "Gemini 3 Pro (Image Preview)"},
+            {"value": "gemini-2.0-flash-exp", "label": "Gemini 2.0 Flash"},
+            {"value": "gemini-1.5-pro", "label": "Gemini 1.5 Pro"}
+          ]
+        },
+        {
+          "id": "embedding_model",
+          "label": "Embedding Model",
+          "type": "select",
+          "required": true,
+          "env_var": "EMBEDDING_MODEL",
+          "default": "text-embedding-ada-002",
+          "description": "Model for text embeddings",
+          "options": [
+            {"value": "text-embedding-ada-002", "label": "Ada 002"},
+            {"value": "text-embedding-3-small", "label": "Embedding 3 Small"},
+            {"value": "text-embedding-3-large", "label": "Embedding 3 Large"}
+          ]
+        },
+        {
+          "id": "tts_model",
+          "label": "Text-to-Speech Model",
+          "type": "select",
+          "required": true,
+          "env_var": "TTS_MODEL",
+          "default": "tts-1",
+          "description": "OpenAI TTS model",
+          "options": [
+            {"value": "tts-1", "label": "TTS-1 (Standard)"},
+            {"value": "tts-1-hd", "label": "TTS-1-HD (High Definition)"}
+          ]
+        },
+        {
+          "id": "whisper_model",
+          "label": "Speech-to-Text Model",
+          "type": "select",
+          "required": true,
+          "env_var": "WHISPER_MODEL",
+          "default": "whisper-1",
+          "description": "OpenAI Whisper model for transcription",
+          "options": [
+            {"value": "whisper-1", "label": "Whisper-1"}
+          ]
+        },
+        {
+          "id": "ai_temperature",
+          "label": "AI Temperature",
+          "type": "number",
+          "required": true,
+          "env_var": "AI_TEMPERATURE",
+          "default": 1,
+          "description": "Creativity/randomness of AI responses (0.0-2.0)",
+          "validation": {
+            "min": 0,
+            "max": 2,
+            "step": 0.1
+          },
+          "ui_component": "slider"
+        },
+        {
+          "id": "max_tokens",
+          "label": "Max Tokens (OpenAI)",
+          "type": "number",
+          "required": true,
+          "env_var": "MAX_TOKENS",
+          "default": 5500,
+          "description": "Maximum tokens in OpenAI API responses",
+          "validation": {
+            "min": 100,
+            "max": 128000,
+            "step": 100
+          }
+        },
+        {
+          "id": "gemini_max_tokens",
+          "label": "Max Tokens (Gemini)",
+          "type": "number",
+          "required": false,
+          "env_var": "GEMINI_MAX_TOKENS",
+          "default": 8192,
+          "description": "Maximum output tokens for Gemini",
+          "validation": {
+            "min": 100,
+            "max": 32768,
+            "step": 256
+          }
+        },
+        {
+          "id": "gpt5_reasoning_effort",
+          "label": "GPT-5 Reasoning Effort",
+          "type": "select",
+          "required": false,
+          "env_var": "GPT5_REASONING_EFFORT",
+          "default": "medium",
+          "description": "Reasoning depth for GPT-5 responses",
+          "options": [
+            {"value": "minimal", "label": "Minimal"},
+            {"value": "low", "label": "Low"},
+            {"value": "medium", "label": "Medium"},
+            {"value": "high", "label": "High"}
+          ]
+        },
+        {
+          "id": "gpt5_verbosity",
+          "label": "GPT-5 Verbosity",
+          "type": "select",
+          "required": false,
+          "env_var": "GPT5_VERBOSITY",
+          "default": "medium",
+          "description": "Response verbosity level for GPT-5",
+          "options": [
+            {"value": "low", "label": "Low"},
+            {"value": "medium", "label": "Medium"},
+            {"value": "high", "label": "High"}
+          ]
+        },
+        {
+          "id": "gemini_temperature",
+          "label": "Gemini Temperature",
+          "type": "number",
+          "required": false,
+          "env_var": "GEMINI_TEMPERATURE",
+          "default": 0.7,
+          "description": "Temperature for Gemini generation",
+          "validation": {
+            "min": 0,
+            "max": 2,
+            "step": 0.1
+          },
+          "ui_component": "slider"
+        },
+        {
+          "id": "gemini_top_k",
+          "label": "Gemini Top-K",
+          "type": "number",
+          "required": false,
+          "env_var": "GEMINI_TOP_K",
+          "default": 40,
+          "description": "Top-K sampling parameter for Gemini",
+          "validation": {
+            "min": 1,
+            "max": 100,
+            "step": 1
+          }
+        },
+        {
+          "id": "gemini_top_p",
+          "label": "Gemini Top-P",
+          "type": "number",
+          "required": false,
+          "env_var": "GEMINI_TOP_P",
+          "default": 0.95,
+          "description": "Top-P (nucleus) sampling parameter for Gemini",
+          "validation": {
+            "min": 0,
+            "max": 1,
+            "step": 0.05
+          },
+          "ui_component": "slider"
+        }
+      ]
+    },
+    {
+      "id": "performance",
+      "title": "Performance & Timeouts",
+      "icon": "clock",
+      "description": "Timeout settings, retry logic, and performance tuning",
+      "priority": 5,
+      "fields": [
+        {
+          "id": "http_timeout_default",
+          "label": "Default HTTP Timeout",
+          "type": "number",
+          "required": true,
+          "env_var": "HTTP_TIMEOUT_DEFAULT",
+          "default": 30,
+          "description": "Default timeout for HTTP requests (seconds)",
+          "validation": {
+            "min": 5,
+            "max": 300,
+            "step": 5
+          },
+          "unit": "seconds"
+        },
+        {
+          "id": "http_timeout_gpt5",
+          "label": "GPT-5 API Timeout",
+          "type": "number",
+          "required": true,
+          "env_var": "HTTP_TIMEOUT_GPT5",
+          "default": 120,
+          "description": "Timeout for GPT-5 API requests (seconds)",
+          "validation": {
+            "min": 30,
+            "max": 600,
+            "step": 10
+          },
+          "unit": "seconds"
+        },
+        {
+          "id": "http_timeout_gemini",
+          "label": "Gemini API Timeout",
+          "type": "number",
+          "required": false,
+          "env_var": "HTTP_TIMEOUT_GEMINI",
+          "default": 300,
+          "description": "Timeout for Gemini generation requests (seconds)",
+          "validation": {
+            "min": 60,
+            "max": 600,
+            "step": 30
+          },
+          "unit": "seconds"
+        },
+        {
+          "id": "web_fetch_timeout",
+          "label": "Web Page Fetch Timeout",
+          "type": "number",
+          "required": true,
+          "env_var": "WEB_FETCH_TIMEOUT",
+          "default": 60,
+          "description": "Timeout for web page fetching (seconds)",
+          "validation": {
+            "min": 10,
+            "max": 300,
+            "step": 10
+          },
+          "unit": "seconds"
+        },
+        {
+          "id": "web_connect_timeout",
+          "label": "Web Connection Timeout",
+          "type": "number",
+          "required": true,
+          "env_var": "WEB_CONNECT_TIMEOUT",
+          "default": 10,
+          "description": "Timeout for establishing web connections (seconds)",
+          "validation": {
+            "min": 5,
+            "max": 60,
+            "step": 5
+          },
+          "unit": "seconds"
+        },
+        {
+          "id": "image_download_timeout",
+          "label": "Image Download Timeout",
+          "type": "number",
+          "required": true,
+          "env_var": "IMAGE_DOWNLOAD_TIMEOUT",
+          "default": 30,
+          "description": "Timeout for image downloads (seconds)",
+          "validation": {
+            "min": 5,
+            "max": 120,
+            "step": 5
+          },
+          "unit": "seconds"
+        },
+        {
+          "id": "cerebras_retry_count",
+          "label": "Cerebras Retry Attempts",
+          "type": "number",
+          "required": false,
+          "env_var": "CEREBRAS_RETRY_COUNT",
+          "default": 3,
+          "description": "Number of retry attempts for Cerebras API",
+          "validation": {
+            "min": 1,
+            "max": 10,
+            "step": 1
+          }
+        },
+        {
+          "id": "cerebras_retry_delay",
+          "label": "Cerebras Retry Delay",
+          "type": "number",
+          "required": false,
+          "env_var": "CEREBRAS_RETRY_DELAY",
+          "default": 60,
+          "description": "Delay between Cerebras retry attempts (seconds)",
+          "validation": {
+            "min": 10,
+            "max": 300,
+            "step": 10
+          },
+          "unit": "seconds"
+        },
+        {
+          "id": "telegram_retry_count",
+          "label": "Telegram Retry Attempts",
+          "type": "number",
+          "required": false,
+          "env_var": "TELEGRAM_RETRY_COUNT",
+          "default": 3,
+          "description": "Number of retry attempts for Telegram API",
+          "validation": {
+            "min": 1,
+            "max": 10,
+            "step": 1
+          }
+        },
+        {
+          "id": "connection_pool_timeout",
+          "label": "Connection Pool Timeout",
+          "type": "number",
+          "required": true,
+          "env_var": "CONNECTION_POOL_TIMEOUT",
+          "default": 30,
+          "description": "Timeout for getting connections from pool (seconds)",
+          "validation": {
+            "min": 5,
+            "max": 120,
+            "step": 5
+          },
+          "unit": "seconds"
+        },
+        {
+          "id": "task_execution_timeout",
+          "label": "Task Execution Timeout",
+          "type": "number",
+          "required": true,
+          "env_var": "TASK_EXECUTION_TIMEOUT",
+          "default": 30,
+          "description": "Timeout for parallel task execution (seconds)",
+          "validation": {
+            "min": 10,
+            "max": 300,
+            "step": 10
+          },
+          "unit": "seconds"
+        }
+      ]
+    },
+    {
+      "id": "rate_limits",
+      "title": "Rate Limits & Concurrency",
+      "icon": "gauge",
+      "description": "Request rate limiting and concurrency controls",
+      "priority": 6,
+      "fields": [
+        {
+          "id": "max_concurrent_requests",
+          "label": "Max Concurrent Web Requests",
+          "type": "number",
+          "required": true,
+          "env_var": "MAX_CONCURRENT_REQUESTS",
+          "default": 5,
+          "description": "Maximum concurrent web requests",
+          "validation": {
+            "min": 1,
+            "max": 50,
+            "step": 1
+          }
+        },
+        {
+          "id": "max_concurrent_per_host",
+          "label": "Max Concurrent Requests Per Host",
+          "type": "number",
+          "required": true,
+          "env_var": "MAX_CONCURRENT_PER_HOST",
+          "default": 2,
+          "description": "Maximum concurrent requests per host",
+          "validation": {
+            "min": 1,
+            "max": 10,
+            "step": 1
+          }
+        },
+        {
+          "id": "weaviate_pool_size",
+          "label": "Weaviate Connection Pool Size",
+          "type": "number",
+          "required": true,
+          "env_var": "WEAVIATE_POOL_SIZE",
+          "default": 5,
+          "description": "Base connection pool size for Weaviate",
+          "validation": {
+            "min": 1,
+            "max": 20,
+            "step": 1
+          }
+        },
+        {
+          "id": "weaviate_pool_overflow",
+          "label": "Weaviate Pool Max Overflow",
+          "type": "number",
+          "required": true,
+          "env_var": "WEAVIATE_POOL_OVERFLOW",
+          "default": 2,
+          "description": "Maximum overflow connections for Weaviate pool",
+          "validation": {
+            "min": 0,
+            "max": 10,
+            "step": 1
+          }
+        },
+        {
+          "id": "generic_pool_size",
+          "label": "Generic Connection Pool Size",
+          "type": "number",
+          "required": true,
+          "env_var": "GENERIC_POOL_SIZE",
+          "default": 5,
+          "description": "Base connection pool size for generic connections",
+          "validation": {
+            "min": 1,
+            "max": 20,
+            "step": 1
+          }
+        },
+        {
+          "id": "generic_pool_overflow",
+          "label": "Generic Pool Max Overflow",
+          "type": "number",
+          "required": true,
+          "env_var": "GENERIC_POOL_OVERFLOW",
+          "default": 2,
+          "description": "Maximum overflow for generic connection pool",
+          "validation": {
+            "min": 0,
+            "max": 10,
+            "step": 1
+          }
+        },
+        {
+          "id": "telegram_message_length",
+          "label": "Telegram Message Length Limit",
+          "type": "number",
+          "required": false,
+          "env_var": "TELEGRAM_MESSAGE_LENGTH",
+          "default": 4096,
+          "description": "Maximum length for Telegram messages (characters)",
+          "validation": {
+            "min": 1000,
+            "max": 4096,
+            "step": 100
+          },
+          "readonly": true,
+          "note": "Telegram API limitation - cannot exceed 4096"
+        },
+        {
+          "id": "telegram_file_size_limit",
+          "label": "Telegram File Size Limit",
+          "type": "number",
+          "required": false,
+          "env_var": "TELEGRAM_FILE_SIZE_LIMIT_MB",
+          "default": 5,
+          "description": "Maximum file upload size for Telegram (MB)",
+          "validation": {
+            "min": 1,
+            "max": 50,
+            "step": 1
+          },
+          "unit": "MB"
+        },
+        {
+          "id": "max_gemini_images",
+          "label": "Max Images for Gemini",
+          "type": "number",
+          "required": false,
+          "env_var": "MAX_GEMINI_IMAGES",
+          "default": 3,
+          "description": "Maximum number of input images for Gemini",
+          "validation": {
+            "min": 1,
+            "max": 10,
+            "step": 1
+          }
+        },
+        {
+          "id": "image_size_threshold",
+          "label": "Image Size Threshold",
+          "type": "number",
+          "required": true,
+          "env_var": "IMAGE_SIZE_THRESHOLD_KB",
+          "default": 10,
+          "description": "Minimum image size threshold (KB)",
+          "validation": {
+            "min": 1,
+            "max": 100,
+            "step": 1
+          },
+          "unit": "KB"
+        },
+        {
+          "id": "content_size_limit",
+          "label": "Content Download Size Limit",
+          "type": "number",
+          "required": true,
+          "env_var": "CONTENT_SIZE_LIMIT_MB",
+          "default": 5,
+          "description": "Maximum content download size (MB)",
+          "validation": {
+            "min": 1,
+            "max": 50,
+            "step": 1
+          },
+          "unit": "MB"
+        }
+      ]
+    },
+    {
+      "id": "network",
+      "title": "Network & Proxy",
+      "icon": "network",
+      "description": "Proxy configuration and network settings",
+      "priority": 7,
+      "fields": [
+        {
+          "id": "proxy_url",
+          "label": "HTTP Proxy URL",
+          "type": "text",
+          "required": false,
+          "env_var": "HTTP_PROXY_URL",
+          "description": "HTTP proxy URL with authentication (format: http://user:pass@host:port)",
+          "security_warning": "Previously contained hardcoded credentials - update immediately",
+          "placeholder": "http://username:password@proxy.example.com:8080",
+          "validation": {
+            "pattern": "^https?://[^:]+:[^@]+@[a-zA-Z0-9.-]+(:[0-9]+)?$",
+            "errorMessage": "Must include authentication credentials"
+          }
+        },
+        {
+          "id": "user_agents_enabled",
+          "label": "Enable User Agent Rotation",
+          "type": "boolean",
+          "required": false,
+          "env_var": "USER_AGENTS_ENABLED",
+          "default": true,
+          "description": "Enable random user agent rotation for web requests"
+        }
+      ]
+    },
+    {
+      "id": "media_audio",
+      "title": "Media & Audio",
+      "icon": "volume-2",
+      "description": "Audio and media processing settings",
+      "priority": 8,
+      "fields": [
+        {
+          "id": "audio_sample_rate",
+          "label": "Audio Sample Rate",
+          "type": "select",
+          "required": true,
+          "env_var": "AUDIO_SAMPLE_RATE",
+          "default": 44100,
+          "description": "Audio output sample rate (Hz)",
+          "options": [
+            {"value": 22050, "label": "22.05 kHz"},
+            {"value": 44100, "label": "44.1 kHz (CD Quality)"},
+            {"value": 48000, "label": "48 kHz (Professional)"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "web_scraping",
+      "title": "Web Scraping",
+      "icon": "globe",
+      "description": "Web scraping and content filtering settings",
+      "priority": 9,
+      "fields": [
+        {
+          "id": "allowed_content_types",
+          "label": "Allowed Content Types",
+          "type": "multiselect",
+          "required": true,
+          "env_var": "ALLOWED_CONTENT_TYPES",
+          "default": ["text/html", "text/plain", "application/xhtml+xml", "text/xml", "application/xml"],
+          "description": "Whitelisted content types for scraping",
+          "options": [
+            {"value": "text/html", "label": "HTML"},
+            {"value": "text/plain", "label": "Plain Text"},
+            {"value": "application/xhtml+xml", "label": "XHTML"},
+            {"value": "text/xml", "label": "XML"},
+            {"value": "application/xml", "label": "Application XML"},
+            {"value": "application/json", "label": "JSON"}
+          ]
+        },
+        {
+          "id": "blocked_extensions",
+          "label": "Blocked File Extensions",
+          "type": "tags",
+          "required": true,
+          "env_var": "BLOCKED_EXTENSIONS",
+          "default": [".counts", ".dat", ".bin", ".exe", ".zip", ".tar", ".gz", ".csv", ".tsv", ".json", ".log", ".db", ".sql"],
+          "description": "File extensions to block from scraping",
+          "placeholder": "Add extension (e.g., .pdf)"
+        },
+        {
+          "id": "blocked_url_patterns_enabled",
+          "label": "Enable URL Pattern Blocking",
+          "type": "boolean",
+          "required": false,
+          "env_var": "BLOCKED_URL_PATTERNS_ENABLED",
+          "default": true,
+          "description": "Enable blocking of API, data feed, and other non-content URLs"
+        }
+      ]
+    },
+    {
+      "id": "excel_export",
+      "title": "Excel Export Styling",
+      "icon": "file-spreadsheet",
+      "description": "Excel export formatting and styling options",
+      "priority": 10,
+      "fields": [
+        {
+          "id": "excel_default_color_scheme",
+          "label": "Default Color Scheme",
+          "type": "select",
+          "required": true,
+          "env_var": "EXCEL_DEFAULT_COLOR_SCHEME",
+          "default": "blue",
+          "description": "Default color scheme for Excel exports",
+          "options": [
+            {"value": "blue", "label": "Blue"},
+            {"value": "green", "label": "Green"},
+            {"value": "yellow", "label": "Yellow"},
+            {"value": "red", "label": "Red"},
+            {"value": "purple", "label": "Purple"},
+            {"value": "orange", "label": "Orange"},
+            {"value": "teal", "label": "Teal"},
+            {"value": "gray", "label": "Gray"}
+          ]
+        },
+        {
+          "id": "excel_header_row_height",
+          "label": "Header Row Height",
+          "type": "number",
+          "required": true,
+          "env_var": "EXCEL_HEADER_ROW_HEIGHT",
+          "default": 30,
+          "description": "Height of header row in Excel (points)",
+          "validation": {
+            "min": 15,
+            "max": 60,
+            "step": 5
+          },
+          "unit": "points"
+        },
+        {
+          "id": "excel_column_width_cap",
+          "label": "Column Width Cap",
+          "type": "number",
+          "required": true,
+          "env_var": "EXCEL_COLUMN_WIDTH_CAP",
+          "default": 50,
+          "description": "Maximum column width for auto-sizing",
+          "validation": {
+            "min": 20,
+            "max": 100,
+            "step": 5
+          }
+        }
+      ]
+    },
+    {
+      "id": "feature_flags",
+      "title": "Feature Flags",
+      "icon": "flag",
+      "description": "Enable or disable specific features",
+      "priority": 11,
+      "fields": [
+        {
+          "id": "enable_odoo_integration",
+          "label": "Enable Odoo Integration",
+          "type": "boolean",
+          "required": false,
+          "env_var": "ENABLE_ODOO_INTEGRATION",
+          "default": true,
+          "description": "Enable Odoo ERP system integration"
+        },
+        {
+          "id": "enable_erpnext_integration",
+          "label": "Enable ERPNext Integration",
+          "type": "boolean",
+          "required": false,
+          "env_var": "ENABLE_ERPNEXT_INTEGRATION",
+          "default": true,
+          "description": "Enable ERPNext ERP system integration"
+        },
+        {
+          "id": "enable_slack_integration",
+          "label": "Enable Slack Integration",
+          "type": "boolean",
+          "required": false,
+          "env_var": "ENABLE_SLACK_INTEGRATION",
+          "default": true,
+          "description": "Enable Slack messaging integration"
+        },
+        {
+          "id": "enable_telegram_integration",
+          "label": "Enable Telegram Integration",
+          "type": "boolean",
+          "required": false,
+          "env_var": "ENABLE_TELEGRAM_INTEGRATION",
+          "default": true,
+          "description": "Enable Telegram bot integration"
+        },
+        {
+          "id": "enable_message_router",
+          "label": "Enable Unified Message Router",
+          "type": "boolean",
+          "required": false,
+          "env_var": "ENABLE_MESSAGE_ROUTER",
+          "default": true,
+          "description": "Enable unified messaging router for cross-platform messaging"
+        },
+        {
+          "id": "enable_semantic_routing",
+          "label": "Enable Semantic Routing",
+          "type": "boolean",
+          "required": false,
+          "env_var": "ENABLE_SEMANTIC_ROUTING",
+          "default": true,
+          "description": "Enable semantic routing for intelligent message handling"
+        },
+        {
+          "id": "enable_web_scraping",
+          "label": "Enable Web Scraping",
+          "type": "boolean",
+          "required": false,
+          "env_var": "ENABLE_WEB_SCRAPING",
+          "default": true,
+          "description": "Enable web content scraping functionality"
+        },
+        {
+          "id": "enable_weather_service",
+          "label": "Enable Weather Service",
+          "type": "boolean",
+          "required": false,
+          "env_var": "ENABLE_WEATHER_SERVICE",
+          "default": true,
+          "description": "Enable OpenWeather API integration"
+        },
+        {
+          "id": "enable_google_calendar",
+          "label": "Enable Google Calendar",
+          "type": "boolean",
+          "required": false,
+          "env_var": "ENABLE_GOOGLE_CALENDAR",
+          "default": true,
+          "description": "Enable Google Calendar integration"
+        },
+        {
+          "id": "enable_url_shortener",
+          "label": "Enable URL Shortener",
+          "type": "boolean",
+          "required": false,
+          "env_var": "ENABLE_URL_SHORTENER",
+          "default": true,
+          "description": "Enable URL shortening service"
+        }
+      ]
+    },
+    {
+      "id": "advanced",
+      "title": "Advanced Configuration",
+      "icon": "settings",
+      "description": "Advanced system configuration",
+      "priority": 12,
+      "fields": [
+        {
+          "id": "nltk_data_path",
+          "label": "NLTK Data Path",
+          "type": "text",
+          "required": false,
+          "env_var": "NLTK_DATA_PATH",
+          "default": "/opt/python/nltk_data",
+          "description": "Path to NLTK data directory (for Lambda environments)",
+          "placeholder": "/opt/python/nltk_data"
+        },
+        {
+          "id": "routes_layer_file",
+          "label": "Routes Layer Configuration File",
+          "type": "text",
+          "required": false,
+          "env_var": "ROUTES_LAYER_FILE",
+          "default": "routes_layer.json",
+          "description": "Semantic routing configuration file path",
+          "placeholder": "routes_layer.json"
+        },
+        {
+          "id": "log_level",
+          "label": "Logging Level",
+          "type": "select",
+          "required": true,
+          "env_var": "LOG_LEVEL",
+          "default": "INFO",
+          "description": "Application logging verbosity level",
+          "options": [
+            {"value": "DEBUG", "label": "Debug"},
+            {"value": "INFO", "label": "Info"},
+            {"value": "WARNING", "label": "Warning"},
+            {"value": "ERROR", "label": "Error"},
+            {"value": "CRITICAL", "label": "Critical"}
+          ]
+        },
+        {
+          "id": "debug_mode",
+          "label": "Debug Mode",
+          "type": "boolean",
+          "required": false,
+          "env_var": "DEBUG_MODE",
+          "default": false,
+          "description": "Enable debug mode with verbose logging",
+          "security_warning": "Do not enable in production"
+        }
+      ]
+    }
+  ],
+  "ui_metadata": {
+    "layout": "tabs",
+    "save_button_text": "Save Configuration",
+    "reset_button_text": "Reset to Defaults",
+    "test_connection_text": "Test Connection",
+    "export_button_text": "Export .env File",
+    "import_button_text": "Import from .env",
+    "validation_on_blur": true,
+    "show_env_var_names": true,
+    "enable_search": true,
+    "enable_bulk_edit": false,
+    "confirm_before_reset": true,
+    "auto_save": false,
+    "show_modified_indicator": true
+  },
+  "security_best_practices": {
+    "secret_fields": {
+      "mask_by_default": true,
+      "show_last_n_chars": 4,
+      "require_confirmation_to_view": true,
+      "encrypt_at_rest": true,
+      "never_log": true
+    },
+    "validation": {
+      "test_connection_on_save": true,
+      "validate_format_before_save": true,
+      "check_duplicate_values": false
+    },
+    "audit": {
+      "log_all_changes": true,
+      "track_who_changed": true,
+      "track_when_changed": true,
+      "retain_history": true
+    }
+  },
+  "dependencies": {
+    "erpnext_api_key": ["erpnext_base_url"],
+    "erpnext_api_secret": ["erpnext_base_url"],
+    "odoo_db": ["odoo_url"],
+    "odoo_login": ["odoo_url"],
+    "odoo_password": ["odoo_url"]
+  },
+  "conditional_display": {
+    "show_if_enabled": {
+      "enable_odoo_integration": ["odoo_url", "odoo_db", "odoo_login", "odoo_password"],
+      "enable_erpnext_integration": ["erpnext_base_url", "erpnext_api_key", "erpnext_api_secret"],
+      "enable_slack_integration": ["slack_bot_token", "slack_usernames_table", "channels_table"],
+      "enable_telegram_integration": ["telegram_bot_token", "telegram_message_length", "telegram_file_size_limit"],
+      "enable_weather_service": ["openweather_key"],
+      "enable_google_calendar": ["google_calendar_id", "google_api_key"]
+    }
+  },
+  "validation_rules": {
+    "api_key_patterns": {
+      "openai": "^sk-[A-Za-z0-9-_]+$",
+      "slack": "^xoxb-[A-Za-z0-9-]+$",
+      "telegram": "^[0-9]+:[A-Za-z0-9_-]+$"
+    },
+    "url_patterns": {
+      "http_https": "^https?://[a-zA-Z0-9.-]+(:[0-9]+)?$",
+      "https_only": "^https://[a-zA-Z0-9.-]+(:[0-9]+)?$"
+    }
+  }
+}
